@@ -160,7 +160,7 @@ import pandas as pd; df = pd.read_parquet("dados/processados/SIM_SP_2018-2022/SI
 Você só faz isto uma vez por computador.
 
 1. **Instale o Python 3.12**: baixe em <https://www.python.org/downloads/> e, na primeira tela do instalador, **marque "Add python.exe to PATH"** antes de clicar em *Install Now*.
-2. **Baixe o programa**: nesta página do GitHub, clique no botão verde **Code → Download ZIP** e extraia o ZIP, por exemplo, na Área de Trabalho.
+2. **Baixe o programa**: em <https://github.com/arthursdelphino-blip/Data-SuS>, clique no botão verde **Code → Download ZIP** e extraia o ZIP, por exemplo, na Área de Trabalho.
 3. **Abra o PowerShell na pasta**: abra a pasta extraída, clique na barra de endereço do Explorador de Arquivos, digite `powershell` e aperte Enter.
 4. **Crie o ambiente do programa** (leva alguns minutos):
 
@@ -182,11 +182,13 @@ Todos os dados vêm do **DATASUS / Ministério da Saúde** (FTP público `ftp.da
 
 ## Como citar
 
-> [Nome do autor]. Data-SuS: programa para obtenção e análise de microdados do DATASUS para pesquisa científica [software]. [Ano]. Disponível em: [endereço do repositório no GitHub]. [completar]
+> DELPHINO, Arthur. Data-SuS: programa para obtenção e análise de microdados do DATASUS para pesquisa científica [software]. 2026. Disponível em: https://github.com/arthursdelphino-blip/Data-SuS. Acesso em: [data].
 
 ## Suporte, cursos e análises sob encomenda
 
-Precisa de ajuda para usar o programa, de um curso ou de uma análise pronta para o seu trabalho? Entre em contato: [completar com e-mail, Instagram ou WhatsApp].
+Desenvolvido por **Arthur Delphino**, estudante de Medicina da Universidade Federal Fluminense (UFF).
+
+Precisa de ajuda para usar o programa, de um curso ou de uma análise pronta para o seu trabalho? Entre em contato: **arthursildelphino@gmail.com**.
 
 ## Aviso
 
