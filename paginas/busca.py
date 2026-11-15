@@ -17,6 +17,7 @@ from datasus_ciencia.pipeline import (PASTA_CACHE, PASTA_PROCESSADOS, ErroPedido
 from datasus_ciencia.referencias import cid10_opcoes
 from datasus_ciencia.saida import _rotulo, descricao_campo
 from datasus_ciencia.tratamento import Municipios, expandir_cids
+from interface_imagem import definir_fonte, fonte_de_meta, iniciar_figuras, mostrar_grafico, mostrar_tabela
 
 
 ANO_ATUAL = date.today().year
@@ -190,6 +191,7 @@ def disponibilidade(sistema, tipo, uf):
 
 # ================================================================= cabeçalho
 st.title("📊 DATASUS para Pesquisa")
+iniciar_figuras("busca")
 st.caption("Busque microdados do DATASUS e receba a base tratada, o dicionário, a tabela descritiva e a "
            f"citação prontos para o seu trabalho científico · v{__version__}")
 
@@ -200,6 +202,7 @@ aba_busca, aba_bases, aba_disp, aba_ajuda = st.tabs(
 # ================================================================= visualização de uma base
 def mostrar_base(nome, meta, chave):
     pasta = os.path.join(PASTA_PROCESSADOS, nome)
+    definir_fonte(fonte_de_meta(meta), escopo=nome)  # fonte padrão das imagens desta base
     prelim = sorted({a["nome"] for a in meta["arquivos"] if a["status"] == "preliminar"})
 
     c1, c2, c3, c4 = st.columns(4)
@@ -245,13 +248,14 @@ def mostrar_base(nome, meta, chave):
                 sub = cat[cat["variavel"] == escolha][["categoria", "n", "pct"]].rename(
                     columns={"categoria": "Categoria", "pct": "%"})
                 a, b = st.columns([1, 1])
-                a.dataframe(sub, hide_index=True, width="stretch")
-                b.altair_chart(grafico_barras(sub, "Categoria"), width="stretch")
+                mostrar_tabela(a, sub, f"{nome}_{escolha}", titulo=_rotulo(escolha) or escolha, hide_index=True,
+                               width="stretch")
+                mostrar_grafico(b, grafico_barras(sub, "Categoria"), f"{nome}_{escolha}")
                 with st.expander("Ver todas as categóricas"):
                     st.dataframe(cat, hide_index=True, width="stretch")
             if "variavel" in num:
                 st.subheader("Variáveis numéricas")
-                st.dataframe(num, hide_index=True, width="stretch")
+                mostrar_tabela(st, num, f"{nome}_numericas", hide_index=True, width="stretch")
 
     with t_agreg:
         st.write("Monte contagens agregadas (ex.: óbitos por ano e UF) para estudos ecológicos, séries temporais ou taxas.")
@@ -275,9 +279,10 @@ def mostrar_base(nome, meta, chave):
             ag = df.groupby(por, dropna=False, observed=True).size().reset_index(name="n")
             if somas:
                 ag = ag.merge(df.groupby(por, dropna=False, observed=True)[somas].sum().reset_index(), on=por)
-            st.dataframe(ag, hide_index=True, width="stretch", height=min(400, 38 + 35 * len(ag)))
+            mostrar_tabela(st, ag, f"agregado_{'_'.join(por)}", hide_index=True, width="stretch",
+                           height=min(400, 38 + 35 * len(ag)))
             if len(por) <= 2 and len(ag) <= 500:
-                st.altair_chart(grafico_agregado(ag, por), width="stretch")
+                mostrar_grafico(st, grafico_agregado(ag, por), f"agregado_{'_'.join(por)}")
             elif len(por) > 2:
                 st.caption("Gráfico disponível para até 2 variáveis de agrupamento.")
             st.download_button("⬇️ Baixar agregado (CSV)", ag.to_csv(index=False).encode("utf-8-sig"),

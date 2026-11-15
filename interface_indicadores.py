@@ -13,6 +13,8 @@ import interface_analise as IA
 from datasus_ciencia import estatistica as E
 from datasus_ciencia import indicadores as I
 from datasus_ciencia.pipeline import PASTA_PROCESSADOS
+from interface_imagem import (botao_zip, definir_fonte, fonte_dados, iniciar_figuras, mostrar_grafico,
+                              mostrar_tabela)
 
 COMANDO = {"SINASC": ".\\datasus.bat baixar SINASC --uf {uf} --anos {anos}",
            "SIH": ".\\datasus.bat baixar SIH --tipo RD --uf {uf} --anos {anos} --cid <CIDs> --leve",
@@ -174,6 +176,7 @@ def pagina_indicadores():
     st.title("🧮 Indicadores")
     st.caption("Indicadores prontos de mortalidade e letalidade (definições do Ministério da Saúde/RIPSA), juntando "
                "as bases que você já baixou e a população do TabNet.")
+    iniciar_figuras("indicadores")
     bases = _bases()
     por_sis = {}
     for b in bases:
@@ -297,6 +300,8 @@ def pagina_indicadores():
         b_den = {"nome": ", ".join(b["nome"] for b in usadas), "sistema": sis_den,
                  "meta": {"ufs": uniao("ufs"), "ufs_residencia": uniao("ufs_residencia"), "anos": uniao("anos"),
                           "cids": usadas[0]["meta"].get("cids"),
+                          "sistema_nome": usadas[0]["meta"].get("sistema_nome"),  # fonte das imagens
+                          "data_acesso": max((b["meta"].get("data_acesso") or "" for b in usadas), default=""),
                           "preliminares": any(_tem_prelim(b["meta"]) for b in usadas)}}
         ano_den = _ano_col(den_df, sis_den)
         c2.markdown(f"**Denominador:** {sis_den} – {', '.join(ufs_alvo)}, {_anos_txt(anos_alvo)} (mesmo período "
@@ -458,6 +463,11 @@ def pagina_indicadores():
             pop = pop[pop["ano"].notna()]
     anos_calc = sorted({inicio[a] for a in anos}) if n_g > 1 else anos
     anos_todos, anos = anos, anos_calc
+    # fonte padrão das imagens: sistemas do numerador e do denominador, UFs e anos usados, acesso mais recente
+    metas = [b["meta"] for b in b_num + ([b_den] if b_den else [])]
+    definir_fonte(fonte_dados([m.get("sistema_nome") or m.get("sistema") for m in metas], ufs_usadas, anos_todos,
+                              max((m.get("data_acesso") or "" for m in metas), default=None),
+                              extra=IA.NOTA_POP if d["den"] == "POP" else None), escopo=ch)
 
     # ---------------- cálculo
     if ch == "razao_sexo":
@@ -474,9 +484,9 @@ def pagina_indicadores():
             m1.metric("Razão M/F no período", IA.fmt(tot["razão M/F"], 2),
                       help=f"IC95% {IA.fmt(tot['ic95_inf'], 2)}–{IA.fmt(tot['ic95_sup'], 2)}")
         g = com_rotulo(t.rename(columns={"razão M/F": "razao"}))
-        st.altair_chart(IA.g_linha(g[[nome_tempo, "razao", "ic95_inf", "ic95_sup"]], nome_tempo, "razao",
-                                   titulo_y="Razão M/F", banda=("ic95_inf", "ic95_sup")), width="stretch")
-        st.dataframe(com_rotulo(t), hide_index=True, width="stretch")
+        mostrar_grafico(st, IA.g_linha(g[[nome_tempo, "razao", "ic95_inf", "ic95_sup"]], nome_tempo, "razao",
+                                       titulo_y="Razão M/F", banda=("ic95_inf", "ic95_sup")), "razao_por_sexo")
+        mostrar_tabela(st, com_rotulo(t), "razao_por_sexo", hide_index=True, width="stretch")
         abas["Razão por sexo"] = com_rotulo(t)
         r = E.prais_winsten(t["ano"], t["razão M/F"]) if len(t) >= 4 and n_g == 1 else None
         serie = None
@@ -518,15 +528,17 @@ def pagina_indicadores():
         m3.metric("Denominador", IA.fmt(tot["denominador"]))
         serie_v = com_rotulo(serie)
         serie_v = serie_v[[nome_tempo, "numerador", "denominador", "taxa", "ic95_inf", "ic95_sup"]]
-        st.altair_chart(IA.g_linha(serie_v[[nome_tempo, "taxa", "ic95_inf", "ic95_sup", "numerador", "denominador"]],
-                                   nome_tempo, "taxa", titulo_y=d["unidade"], banda=("ic95_inf", "ic95_sup")),
-                        width="stretch")
+        mostrar_grafico(st, IA.g_linha(serie_v[[nome_tempo, "taxa", "ic95_inf", "ic95_sup", "numerador",
+                                                "denominador"]],
+                                       nome_tempo, "taxa", titulo_y=d["unidade"], banda=("ic95_inf", "ic95_sup")),
+                        f"indicador_{ch}")
         st.caption(f"{d['nome']} {d['unidade']}; faixa = IC95% exato de Poisson.")
         st.markdown(f"##### {'Por período' if n_g > 1 else 'Ano a ano'}")
-        st.dataframe(serie_v.rename(columns={"numerador": "Numerador", "denominador": "Denominador",
-                                             "taxa": f"Taxa ({d['unidade']})", "ic95_inf": "IC95% inf",
-                                             "ic95_sup": "IC95% sup"}),
-                     hide_index=True, width="stretch")
+        mostrar_tabela(st, serie_v.rename(columns={"numerador": "Numerador", "denominador": "Denominador",
+                                                   "taxa": f"Taxa ({d['unidade']})", "ic95_inf": "IC95% inf",
+                                                   "ic95_sup": "IC95% sup"}),
+                       f"indicador_{ch}_serie", titulo=f"{d['nome']} ({d['unidade']})", hide_index=True,
+                       width="stretch")
         abas["Série por período" if n_g > 1 else "Série anual"] = serie_v
         r = I.tendencia(serie) if n_g == 1 else None
         if ch == "dcnt":
@@ -539,11 +551,11 @@ def pagina_indicadores():
             pg[["taxa", "ic95_inf", "ic95_sup"]] = E.taxas(pg["numerador"], pg["denominador"], mult).round(2).to_numpy()
             st.markdown("##### Por grupo de causas")
             pg = com_rotulo(pg)
-            st.altair_chart(IA.g_linha(pg[[nome_tempo, "grupo", "taxa"]], nome_tempo, "taxa", "grupo",
-                                       d["unidade"]), width="stretch")
+            mostrar_grafico(st, IA.g_linha(pg[[nome_tempo, "grupo", "taxa"]], nome_tempo, "taxa", "grupo",
+                                           d["unidade"]), "dcnt_por_grupo")
             if not pad.empty:
                 st.markdown("##### Taxa padronizada por idade (OMS, 30–69 anos)")
-                st.dataframe(com_rotulo(pad), hide_index=True, width="stretch")
+                mostrar_tabela(st, com_rotulo(pad), "dcnt_padronizada", hide_index=True, width="stretch")
                 abas["Padronizada"] = com_rotulo(pad)
             abas["Por grupo"] = pg
             cids_meta = b_num[0]["meta"].get("cids")
@@ -557,8 +569,8 @@ def pagina_indicadores():
                 st.markdown("##### Taxa padronizada por idade (OMS)")
                 g_pad = com_rotulo(pad.rename(columns={"taxa_padronizada": "taxa", "ic95_inf_pad": "ic95_inf",
                                                        "ic95_sup_pad": "ic95_sup"}))
-                st.altair_chart(IA.g_linha(g_pad, nome_tempo, "taxa", titulo_y=f"Padronizada {d['unidade']}",
-                                           banda=("ic95_inf", "ic95_sup")), width="stretch")
+                mostrar_grafico(st, IA.g_linha(g_pad, nome_tempo, "taxa", titulo_y=f"Padronizada {d['unidade']}",
+                                               banda=("ic95_inf", "ic95_sup")), f"indicador_{ch}_padronizada")
                 st.caption("Método direto, população-padrão mundial da OMS (faixas quinquenais, 80+), IC95% gama "
                            "de Fay-Feuer. Use para comparar anos ou locais com estruturas etárias diferentes.")
                 abas["Padronizada"] = g_pad
@@ -570,7 +582,7 @@ def pagina_indicadores():
             st.markdown(f"##### Por {nivel.lower()}")
             vis = com_rotulo(t.drop(columns=["mun_residencia_uf"] if nivel == "Município de residência" and
                                     "mun_residencia_nome" not in t else [], errors="ignore"))
-            st.dataframe(vis, hide_index=True, width="stretch", height=360)
+            mostrar_tabela(st, vis, f"indicador_{ch}_por_{nivel}", hide_index=True, width="stretch", height=360)
             if nivel == "Município de residência":
                 st.caption("Municípios pequenos têm taxas muito instáveis – observe o IC95%" +
                            ("; agrupar anos (biênios, triênios) ajuda." if n_g == 1 else "."))
@@ -619,3 +631,4 @@ def pagina_indicadores():
                                             date.today().isoformat()]})
     st.download_button("⬇️ Baixar indicador (Excel)", _excel(abas), file_name=f"indicador_{ch}_{date.today()}.xlsx",
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary")
+    botao_zip(st, "indicadores", f"figuras_indicador_{ch}_{date.today()}")

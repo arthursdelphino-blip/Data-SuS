@@ -40,6 +40,12 @@ ROTULOS = {
     "encerramento_tb": "Situação de encerramento (tuberculose)", "hiv_tb": "Teste de HIV (tuberculose)",
     "classificacao_operacional": "Classificação operacional (hanseníase)",
     "forma_clinica_hans": "Forma clínica (hanseníase)", "mun_notificacao_nome": "Município de notificação",
+    "idade_gestacional_sifg": "Idade gestacional (trimestre)", "uf_prenatal": "UF do pré-natal",
+    "municipio_prenatal": "Município do pré-natal",
+    "classificacao_clinica_sifg": "Classificação clínica (sífilis)", "teste_nao_treponemico": "Teste não treponêmico",
+    "teste_treponemico": "Teste treponêmico", "esquema_tratamento": "Esquema de tratamento",
+    "parceiro_tratado": "Parceiro tratado concomitantemente", "esquema_tratamento_parceiro": "Esquema de tratamento do parceiro",
+    "motivo_parceiro_nao_tratado": "Motivo do não tratamento do parceiro",
     # territórios do TabNet
     "regiao_saude": "Região de Saúde (CIR)", "macrorregiao_saude": "Macrorregião de Saúde",
     "microrregiao_ibge": "Microrregião IBGE", "regiao_metropolitana": "Região Metropolitana/RIDE",

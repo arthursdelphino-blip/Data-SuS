@@ -31,6 +31,13 @@ Escolha a base e as características na barra lateral: **período, sexo, raça/c
 | Regressão | **Regressão logística**: OR bruto e ajustado (IC95%), gráfico de floresta e escolha da categoria de referência |
 | Relatório | Excel com todas as tabelas, mais o parágrafo de métodos estatísticos pronto para o artigo. **Resumo para congresso**: lista de achados ranqueados por relevância estatística (significância, tamanho de efeito, magnitude); você marca os que quer e o programa monta um resumo estruturado (250–300 palavras), editável e para baixar (.txt/.md). Gratuito e offline |
 
+**Imagens para publicação**: abaixo de cada gráfico e mapa há o botão **🖼️ Baixar imagem**, que gera PNG em 300 dpi ou SVG editável (Inkscape/Word). Abaixo de cada tabela há o botão **Baixar tabela (PNG)**, no estilo de artigo, com rótulos das variáveis e vírgula decimal. As imagens saem com fundo branco, cores próprias para fundo claro, datas em português e a **fonte dos dados** já preenchida (sistema, UF, período e data de acesso). O botão **🎨 Personalizar** abre uma janela com prévia, onde dá para definir:
+- **título** (com numeração "Figura N"/"Tabela N"), **subtítulo**, **legenda/nota** abaixo e **fonte** (vale para uma figura ou para todas da página);
+- nos gráficos: títulos dos eixos, posição e título da legenda das cores, tamanho (1 coluna 8,5 cm, página 17 cm, slide ou em cm), tamanho da letra e **escala de cinza** para impressão;
+- nas tabelas: colunas incluídas e a ordem delas, nome de cada coluna, casas decimais e tamanho da letra.
+
+As escolhas ficam salvas: o download rápido e o ZIP já saem personalizados. Na aba **Relatório** (e na página Indicadores), **Baixar todas as figuras e tabelas (ZIP)** junta tudo numerado na ordem da tela (`Figura_01_...`, `Tabela_01_...`). Os mesmos botões aparecem em *Minhas bases* (tabela descritiva e agregados).
+
 Indicadores no seletor **Medir** (barra lateral), além de número de registros e proporção de um desfecho:
 - **Letalidade** (SINAN): % de casos com óbito pelo agravo (na tuberculose, óbito por TB no encerramento); denominador = todos os notificados, só confirmados ou só casos com desfecho informado.
 - **Mortalidade proporcional** (SIM): % dos óbitos por uma causa escolhida. Para o total de óbitos, baixe o SIM sem filtro de CID.

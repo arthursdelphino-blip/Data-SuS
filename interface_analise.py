@@ -20,6 +20,7 @@ from datasus_ciencia.catalogo import UF_POR_CODIGO, UFS
 from datasus_ciencia.pipeline import PASTA_CACHE, PASTA_PROCESSADOS
 from datasus_ciencia.saida import _rotulo
 from datasus_ciencia.tratamento import COLUNA_CID, diagnostico, expandir_cids, universo, variaveis_extras
+from interface_imagem import botao_zip, fonte_de_meta, iniciar_figuras, mostrar_grafico, mostrar_tabela
 
 # ------------------------------------------------------------------ paleta (validada – skill dataviz)
 # Tema escuro (fundo marinho #0B1A2E, .streamlit/config.toml): passos "dark" da paleta categórica,
@@ -49,6 +50,13 @@ MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "
 GEOGRAFICAS = {"mun_residencia_uf", "mun_residencia_regiao"}
 # grupos de comparação que têm população correspondente no TabNet (coluna em rotular_populacao)
 MAP_POP = {"mun_residencia_uf": "uf", "mun_residencia_regiao": "regiao", "sexo": "sexo", "faixa_etaria": "faixa_etaria"}
+# comparação territorial (regiões de saúde, municípios): até 8 níveis escolhidos; a população do TabNet é municipal,
+# então pop_base ganha a mesma coluna (cod6 → nível) e as taxas por grupo funcionam
+GRUPOS_TERRIT = {*T.TERRITORIOS, "municipio_residencia"}
+MAP_POP.update({c: c for c in GRUPOS_TERRIT})
+# variáveis com muitos níveis: o usuário escolhe até 8 (as territoriais também têm taxa; as demais, só contagem)
+GRUPOS_ESCOLHA = GRUPOS_TERRIT | {"municipio_prenatal", "mun_notificacao_nome"}
+ROT_GRUPO = {"municipio_residencia": "Município de residência", **{c: r for c, (_, r) in T.TERRITORIOS.items()}}
 GRUPOS_TAXA = set(MAP_POP)
 NOTA_POP = "População: MS/SVSA – estimativas por município, idade e sexo (TabNet/DATASUS)."
 EVENTO = {"SIM": ("óbitos", 100_000, "100 mil hab."), "SIM-NAC": ("óbitos", 100_000, "100 mil hab."),
@@ -82,6 +90,8 @@ def fmt(n, casas=0):
 
 
 def rot(c):
+    if c in ROT_GRUPO:
+        return ROT_GRUPO[c]
     r = _rotulo(c)
     return r if r and not r.startswith("Variável original") else c
 
@@ -93,7 +103,7 @@ def _colunas_analise(nomes):
     (a análise é por residência) e o nome do arquivo de origem – em bases grandes isso corta centenas de MB."""
     from datasus_ciencia.tratamento import EXTRAS_DECOD
     nomes = set(nomes)
-    originais = set(COLUNA_CID.values()) | {"ID_AGRAVO"}
+    originais = set(COLUNA_CID.values()) | {"ID_AGRAVO", "PRE_MUNIRE"}  # PRE_MUNIRE → municipio_prenatal
     if "ano_diagnostico" not in nomes:
         originais.add("DT_DIAG")  # bases antigas do SINAN: o ano de diagnóstico é calculado ao carregar
     originais |= {o for o, nova, _, _ in EXTRAS_DECOD if nova not in nomes}
@@ -124,6 +134,16 @@ def _carregar(caminho, _mtime):
         df["_mes_notificacao"] = pd.to_datetime(df["data_notificacao"], errors="coerce").dt.month.astype("Int64")
     diagnostico(df)  # SINAN processado antes de existir ano_diagnostico
     variaveis_extras(df)  # bases processadas antes de existir a variável
+    if "PRE_MUNIRE" in df and "municipio_prenatal" not in df:  # sífilis em gestante: município do pré-natal
+        try:
+            from datasus_ciencia.tratamento import Municipios
+            mp = Municipios(PASTA_CACHE, log=lambda *_: None).mapa()
+            cods = df.pop("PRE_MUNIRE").astype("string").str.strip().str[:6]
+            rotulos = {c: f"{v['nome']} – {v['uf']}" for c in cods.dropna().unique() if (v := mp.get(c))}
+            df["municipio_prenatal"] = cods.map(rotulos).astype("category")
+        except Exception:
+            pass
+    df.drop(columns=["PRE_MUNIRE"], errors="ignore", inplace=True)
     try:
         T.adicionar_territorios(df, PASTA_CACHE)
     except Exception:  # sem FTP: segue sem os filtros territoriais
@@ -265,6 +285,18 @@ def limitar_niveis(s, maximo=8):
     return s.where(s.isin(manter), "Outros")
 
 
+def preparar_comparacao(d, grupo, excl, maximo=8):
+    """Cópia de `d` com o grupo em no máx. `maximo` níveis, sem os ignorados (se `excl`) e, na comparação territorial,
+    só com os níveis escolhidos (os demais registros estão com o grupo vazio)."""
+    if grupo in GRUPOS_ESCOLHA:
+        d = d[d[grupo].notna()]
+    d = d.copy()
+    d[grupo] = limitar_niveis(d[grupo], maximo)
+    if excl:
+        d = d[~d[grupo].isin(E.AUSENTES)]
+    return d
+
+
 def _eixo():
     return {"gridColor": "#1F3A5C", "domainColor": "#2C4A6E", "tickColor": "#2C4A6E",
             "labelColor": "#8FA6BF", "titleColor": "#8FA6BF"}
@@ -334,7 +366,7 @@ def g_piramide(d):
     ch = alt.Chart(d).mark_bar(height={"band": 0.85}).encode(
         y=alt.Y("faixa_etaria:N", sort=ordem, title="Faixa etária", axis=alt.Axis(labelOverlap=False)),
         x=alt.X("valor:Q", title="n", scale=alt.Scale(domain=[-m, m]),
-                axis=alt.Axis(labelExpr="abs(datum.value)")),
+                axis=alt.Axis(labelExpr="format(abs(datum.value), ',.0f')")),
         color=alt.Color("sexo:N", scale=escala_cores(["Masculino", "Feminino"]), title="Sexo"),
         tooltip=["sexo", "faixa_etaria", "n", alt.Tooltip("pct", title="% do total")])
     return _cfg(ch.properties(height=max(300, 30 * len(ordem))))
@@ -424,12 +456,10 @@ def aba_periodos(df, ano_col, mes_col, grupo, excl, y_ind, nome_ind, pop, mult, 
         return
     rot_a, rot_b = f"A ({anos_a[0]}–{anos_a[-1]})", f"B ({anos_b[0]}–{anos_b[-1]})"
 
-    d = df.copy()
-    if grupo:
-        d[grupo] = limitar_niveis(d[grupo])
-        if excl:
-            d = d[~d[grupo].isin(E.AUSENTES)]
-    blocos = [("Total", d)] + ([(g, sub) for g, sub in d.groupby(grupo, observed=True)] if grupo else [])
+    d = preparar_comparacao(df, grupo, excl) if grupo else df
+    # comparação territorial: o Total continua com todos os registros (não só os níveis escolhidos)
+    total = df if grupo in GRUPOS_ESCOLHA else d
+    blocos = [("Total", total)] + ([(g, sub) for g, sub in d.groupby(grupo, observed=True)] if grupo else [])
     usar_pop = (y_ind is None and pop_por is not None and pop is not None and len(pop) > 0
                 and (grupo is None or grupo in GRUPOS_TAXA))
     usar_pad = usar_pop and pad_por is not None
@@ -495,7 +525,7 @@ def aba_periodos(df, ano_col, mes_col, grupo, excl, y_ind, nome_ind, pop, mult, 
     if linhas:
         tab = pd.DataFrame(linhas)
         tab["Grupo"] = tab["Grupo"].astype(str)
-        st.dataframe(tab, hide_index=True, width="stretch")
+        mostrar_tabela(st, tab, "comparacao_periodos", hide_index=True, width="stretch")
         relatorio["Comparação de períodos"] = tab
         gd = pd.DataFrame(graf)
         ordem_g = list(dict.fromkeys(gd["Grupo"]))
@@ -510,7 +540,8 @@ def aba_periodos(df, ano_col, mes_col, grupo, excl, y_ind, nome_ind, pop, mult, 
         camadas = [pts]
         if y_ind is not None or usar_pad:
             camadas.insert(0, base.mark_rule(strokeWidth=2).encode(x="inf:Q", x2="sup:Q"))
-        st.altair_chart(_cfg(alt.layer(*camadas).properties(height=max(120, 46 * len(ordem_g)))), width="stretch")
+        mostrar_grafico(st, _cfg(alt.layer(*camadas).properties(height=max(120, 46 * len(ordem_g)))),
+                        "comparacao_periodos")
         if y_ind is not None:
             nota = "Proporções com IC95% de Wilson; razão B/A com IC95% (método log); qui-quadrado ou exato de Fisher."
         elif usar_pad:
@@ -588,13 +619,13 @@ def aba_periodos(df, ano_col, mes_col, grupo, excl, y_ind, nome_ind, pop, mult, 
                 dados_graf = (g, "ano", "O")
     if dados_graf:
         g, x, tipo = dados_graf
-        st.altair_chart(g_its(g[[x, "observado", "ajustado", "contrafactual", "segmento"]], x,
-                              "%" if y_ind is not None else f"Número de {evento}", tipo), width="stretch")
+        mostrar_grafico(st, g_its(g[[x, "observado", "ajustado", "contrafactual", "segmento"]], x,
+                                  "%" if y_ind is not None else f"Número de {evento}", tipo), "serie_interrompida")
         st.caption("Pontos = observado · linha azul = modelo ajustado · tracejado laranja = contrafactual "
                    "(tendência do período A projetada) · linha vertical = início do período B.")
     if res:
         tr = pd.DataFrame(res)
-        st.dataframe(tr, hide_index=True, width="stretch")
+        mostrar_tabela(st, tr, "serie_interrompida", hide_index=True, width="stretch")
         relatorio["Série interrompida"] = tr
         st.caption("Modelo: y = β0 + β1·tempo + β2·pós + β3·tempo desde a interrupção"
                    + (" + meses (sazonalidade)" if escala == "Mensal" and sazonal else "")
@@ -604,6 +635,37 @@ def aba_periodos(df, ano_col, mes_col, grupo, excl, y_ind, nome_ind, pop, mult, 
     else:
         st.info("Pontos insuficientes para a série interrompida (mínimo 8, com ao menos 3 em cada período). "
                 "Use a escala mensal ou um período mais longo.")
+
+
+# ------------------------------------------------------------------ título
+def local_filtro(ufs, municipios=(), regioes=()):
+    """'RJ' · 'SP, MG' · 'Niterói – RJ' · 'Sudeste' · 'Brasil' (para a linha de filtros)."""
+    if municipios:
+        return ", ".join(municipios)
+    if regioes:
+        return ", ".join(regioes)
+    ufs = [u for u in ufs if u]
+    return "Brasil" if not ufs or len(ufs) >= 27 else ", ".join(ufs)
+
+
+def subtitulo_analise(meta, sistema, evento):
+    """O que a base contém, ex.: 'Sífilis em gestante – SINAN'; 'Internações por CID-10 I21, I22 – SIH'."""
+    from datasus_ciencia.catalogo import SISTEMAS
+    tipos = SISTEMAS.get(sistema, {}).get("tipos") or {}
+    tipo = meta.get("tipo")
+    if sistema in ("SINAN", "SIM-NAC", "CNES") and tipo in tipos:
+        assunto = tipos[tipo]
+    elif sistema == "SIA":
+        assunto = "Procedimentos ambulatoriais"
+    else:
+        assunto = evento.capitalize()
+    # recorte feito no download (os filtros da barra lateral vão na linha de filtros)
+    if meta.get("procedimentos_nomes"):
+        nomes = [str(n).capitalize() for n in meta["procedimentos_nomes"] if n]
+        assunto += " – " + "; ".join(nomes[:2]) + ("…" if len(nomes) > 2 else "")
+    elif meta.get("cids"):
+        assunto += " por CID-10 " + ", ".join(meta["cids"])
+    return f"{assunto} – {sistema.split('-')[0]}"
 
 
 # ------------------------------------------------------------------ página
@@ -849,9 +911,38 @@ def pagina_analise():
                          "tipo_gravidez", "obito_relacao_parto", "obito_investigado",
                          "mun_residencia_regiao", "mun_residencia_uf", "_status_dado"]
              if c in df0 and 2 <= df0[c].nunique() <= 30]
+    # demais variáveis categóricas desta base (ex.: SIFG – classificação clínica, testes, UF do pré-natal): só
+    # aparecem as que existem e variam nela, então cada agravo/sistema mostra só os seus marcadores
+    cands += sorted((c for c in df0.columns
+                     if c not in cands and not c.isupper() and not c.startswith(("_", "mun_"))
+                     and c not in GRUPOS_ESCOLHA and c != "cid10_capitulo"  # duplica cid10_capitulo_nome
+                     and str(df0[c].dtype) in ("string", "str", "object", "category")
+                     and 2 <= df0[c].nunique() <= 30), key=lambda c: rot(c).lower())
+    # muitos níveis (territórios, municípios): sem teto, o usuário escolhe até 8 logo abaixo
+    cands += [c for c in T.TERRITORIOS if c in df0 and df0[c].nunique() >= 2]
+    if "mun_residencia_nome" in df0 and len(mapa_mun) >= 2:
+        cands.append("municipio_residencia")
+    cands += [c for c in ("municipio_prenatal", "mun_notificacao_nome") if c in df0 and df0[c].nunique() >= 2]
     grupo = sb.selectbox("Comparar grupos por", ["(nenhum)"] + cands,
                          format_func=lambda c: c if c == "(nenhum)" else rot(c), key=k + "grupo")
     grupo = None if grupo == "(nenhum)" else grupo
+    rot_cmp, niveis_cmp, cod_cmp = None, None, {}  # muitos níveis: rótulo por registro, níveis escolhidos, cod6 → nível
+    if grupo in GRUPOS_ESCOLHA:
+        if grupo == "municipio_residencia":
+            cod_cmp = {c: r for r, c in mapa_mun.items()}
+            rot_cmp = df0["mun_residencia_cod_ibge6"].map(cod_cmp).astype("category")
+        else:
+            rot_cmp = df0[grupo]
+        vc_cmp = rot_cmp[mask].astype("string").value_counts()
+        ops_cmp = list(vc_cmp.index)
+        niveis_cmp = sb.multiselect(f"{rot(grupo)}: quais comparar (até 8)", ops_cmp, default=ops_cmp[:8],
+                                    max_selections=8, key=k + "cmp_" + grupo,
+                                    format_func=lambda c: f"{c} · n={fmt(vc_cmp.get(c, 0))}",
+                                    help="Vêm marcados os 8 com mais registros. Os não escolhidos ficam fora da "
+                                         "comparação, mas continuam no total.")
+        if not niveis_cmp:
+            sb.caption("Escolha ao menos um nível para comparar.")
+            grupo = None
     excl = sb.checkbox("Excluir 'Ignorado' das comparações", value=True, key=k + "excl")
 
     # ---------------- indicador
@@ -934,16 +1025,32 @@ def pagina_analise():
 
     # sem filtro: cópia rasa (copy-on-write do pandas 3) em vez de duplicar a base; df0 fica intacto no cache
     df = df0.copy(deep=False) if bool(mask.all()) else df0[mask]
+    if grupo in GRUPOS_ESCOLHA:  # níveis não escolhidos ficam vazios (fora da comparação); df0 não é alterado
+        r_ = rot_cmp.loc[df.index].astype("string")
+        df[grupo] = r_.where(r_.isin(niveis_cmp))
+    evento, mult, por_txt = EVENTO.get(sistema, ("registros", None, None))
+    periodo_tit = None
+    if ano_col and not df.empty:
+        anos_t = df[ano_col].dropna()
+        if len(anos_t):
+            a_i, a_f = int(anos_t.min()), int(anos_t.max())
+            periodo_tit = str(a_i) if a_i == a_f else f"{a_i}–{a_f}"
+    ufs_tit = sel_uf or meta.get("ufs_residencia") or meta.get("ufs") or []
+    if not sel_uf and "mun_residencia_uf" in df0 and df0["mun_residencia_uf"].nunique() == 1:
+        ufs_tit = [str(df0["mun_residencia_uf"].dropna().iloc[0])]
+    st.subheader(subtitulo_analise(meta, sistema, evento), anchor=False)
+    # local e período sempre aparecem; os demais filtros da barra lateral vêm depois
+    ja_ditos = ("uf de residência:", "município:", "região de residência:")
+    outros_f = [f for f in filtros_txt if not f.startswith(ja_ditos) and not re.fullmatch(r"\d{4}–\d{4}", f)]
+    st.markdown("**Filtros:** " + " · ".join([local_filtro(ufs_tit, mun_sel, sel_reg)]
+                                             + ([periodo_tit] if periodo_tit else []) + outros_f))
+    st.caption(f"{meta['sistema_nome']} · base `{nome}`")
     if df.empty:
         st.warning("Nenhum registro com esses filtros.")
         return
 
-    evento, mult, por_txt = EVENTO.get(sistema, ("registros", None, None))
-    st.caption(f"**{meta['sistema_nome']}** · base `{nome}`"
-               + (" · filtros: " + "; ".join(filtros_txt) if filtros_txt else " · sem filtros"))
-
     # ---------------- indicadores
-    c = st.columns([1, 1.25, 1, 1, 1.1])
+    c = st.columns([1, 1.25, 1, 1])
     c[0].metric(evento.capitalize(), fmt(len(df)), help=f"{fmt(100 * len(df) / len(df0), 1)}% dos registros da base")
     if ano_col:
         anos_df = df[ano_col].dropna()
@@ -953,8 +1060,6 @@ def pagina_analise():
         c[2].metric("Idade mediana (anos)", fmt(ida.median(), 0) if len(ida) else "–")
     if "sexo" in df:
         c[3].metric("% sexo masculino", fmt(100 * (df["sexo"] == "Masculino").mean(), 1))
-    if "mun_residencia_cod_ibge6" in df:
-        c[4].metric("Municípios de residência", fmt(df["mun_residencia_cod_ibge6"].nunique()))
     if y_ind is not None:
         yy = y_ind.loc[df.index].dropna()
         if len(yy):
@@ -1005,6 +1110,12 @@ def pagina_analise():
                 for col_t, s in sel_terr.items():
                     m_t &= terr[col_t].isin(s)
                 pb = pb[pb["cod6"].isin(terr.loc[m_t, "cod6"])]
+            if grupo in GRUPOS_TERRIT:  # mesma coluna do grupo na população (por cod6) → taxas por nível
+                if not cod_cmp:
+                    terr_ = _territorios()
+                    cod_cmp = dict(zip(terr_["cod6"], terr_[grupo])) if terr_ is not None else {}
+                niv_ = pb["cod6"].map(cod_cmp)
+                pb = pb.assign(**{grupo: niv_.where(niv_.isin(niveis_cmp))})
             pop_base = pb
             pop = pb.groupby(["cod6", "ano", "uf"], as_index=False)["pop"].sum().rename(columns={"pop": "populacao"})
             fora = int((~df["mun_residencia_uf"].isin(ufs_escopo)).sum())
@@ -1075,14 +1186,15 @@ def pagina_analise():
     abas = st.tabs(["Panorama", "Perfil", "Geografia", "Causas", "Tabela 1", "Tendência", "Períodos",
                     "Regressão", "Relatório"])
     relatorio = {}
+    # cada gráfico/tabela exibido ganha "Baixar imagem"/"Personalizar" e entra no ZIP do Relatório; a fonte padrão
+    # das imagens segue o recorte (UFs e anos da seleção) e cita a população do TabNet quando há taxas
+    ufs_fonte = ufs_escopo or ([u for u in sel_uf] if sel_uf else None)
+    anos_fonte = df[ano_col].dropna().unique() if ano_col and ano_col in df else None
+    iniciar_figuras("analise", fonte_de_meta(meta, ufs_fonte, anos_fonte,
+                                             extra=NOTA_POP if pop is not None and len(pop) else None))
 
     def preparar_grupo(d):
-        if grupo:
-            d = d.copy()
-            d[grupo] = limitar_niveis(d[grupo])
-            if excl:
-                d = d[~d[grupo].isin(E.AUSENTES)]
-        return d
+        return preparar_comparacao(d, grupo, excl) if grupo else d
 
     # =============== Panorama
     with abas[0]:
@@ -1094,8 +1206,8 @@ def pagina_analise():
             usar_taxa = False
             if y_ind is not None:
                 serie = serie_proporcao(d, y_ind, chaves).rename(columns={ano_col: "ano"})
-                st.altair_chart(g_linha(serie, "ano", "pct", g_var, "%", banda=("ic95_inf", "ic95_sup")),
-                                width="stretch")
+                mostrar_grafico(st, g_linha(serie, "ano", "pct", g_var, "%", banda=("ic95_inf", "ic95_sup")),
+                                "serie_anual_proporcao")
                 st.caption(f"{nome_ind} por ano (faixa = IC95% de Wilson).")
             elif pop is not None and len(pop) and (g_var is None or g_var in GRUPOS_TAXA):
                 usar_taxa = st.toggle(f"Mostrar taxa por {por_txt}", value=True, key=k + "tx")
@@ -1104,8 +1216,8 @@ def pagina_analise():
                            "variável); mostrando contagens.")
             if usar_taxa and pode_pad:
                 serie = serie_padronizada(d, g_var)
-                st.altair_chart(g_linha(serie, "ano", "taxa", g_var, f"Taxa padronizada por {por_txt}",
-                                        banda=("ic95_inf", "ic95_sup")), width="stretch")
+                mostrar_grafico(st, g_linha(serie, "ano", "taxa", g_var, f"Taxa padronizada por {por_txt}",
+                                            banda=("ic95_inf", "ic95_sup")), "serie_anual_taxa_padronizada")
                 st.caption(f"Taxa de {evento} por {por_txt} **padronizada por idade** (método direto, população-padrão "
                            f"mundial da OMS; faixa = IC95% gama de Fay-Feuer). {NOTA_POP}")
             elif usar_taxa:
@@ -1114,25 +1226,25 @@ def pagina_analise():
                 serie = serie.merge(pop_por(g_var), on=["ano"] + ([g_var] if g_var else []), how="left")
                 tx = E.taxas(serie["n"], serie["populacao"], mult)
                 serie = pd.concat([serie, tx.round(2)], axis=1)
-                st.altair_chart(g_linha(serie, "ano", "taxa", g_var, f"Taxa por {por_txt}",
-                                        banda=("ic95_inf", "ic95_sup")), width="stretch")
+                mostrar_grafico(st, g_linha(serie, "ano", "taxa", g_var, f"Taxa por {por_txt}",
+                                            banda=("ic95_inf", "ic95_sup")), "serie_anual_taxa")
                 st.caption(f"Taxa bruta de {evento} por {por_txt} (faixa sombreada = IC95% exato de Poisson). "
                            + (f"Denominador restrito ao mesmo subgrupo (sexo/faixa etária) do filtro. " if
                               (sel_sexo or sel_faixa) else "") + NOTA_POP)
             elif y_ind is None:
-                st.altair_chart(g_linha(serie, "ano", "n", g_var, f"Número de {evento}"), width="stretch")
+                mostrar_grafico(st, g_linha(serie, "ano", "n", g_var, f"Número de {evento}"), "serie_anual")
                 if nota_taxa:
                     st.caption(nota_taxa)
             relatorio["Série anual"] = serie
             with st.expander("Ver tabela da série"):
-                st.dataframe(serie, hide_index=True, width="stretch")
+                mostrar_tabela(st, serie, "serie_anual", hide_index=True, width="stretch")
 
         if mes_col:
             st.markdown("##### Distribuição mensal (sazonalidade)")
             m = df.groupby(mes_col).size().reindex(range(1, 13), fill_value=0).reset_index(name="n")
             m["mês"] = [MESES[i - 1] for i in m[mes_col]]
             m["%"] = (100 * m["n"] / m["n"].sum()).round(1)
-            st.altair_chart(g_barras_v(m[["mês", "n", "%"]], "mês", ordem=MESES), width="stretch")
+            mostrar_grafico(st, g_barras_v(m[["mês", "n", "%"]], "mês", ordem=MESES), "sazonalidade")
             relatorio["Sazonalidade"] = m[["mês", "n", "%"]]
 
     # =============== Perfil
@@ -1142,7 +1254,7 @@ def pagina_analise():
             p = df[df["sexo"].isin(["Masculino", "Feminino"]) & df["faixa_etaria"].notna()]
             p = p.groupby(["faixa_etaria", "sexo"], observed=True).size().reset_index(name="n")
             if len(p):
-                st.altair_chart(g_piramide(p), width="stretch")
+                mostrar_grafico(st, g_piramide(p), "piramide_etaria")
                 relatorio["Pirâmide etária"] = p
         perfil_vars = [v for v in ["sexo", "raca_cor", "faixa_etaria", "escolaridade", "estado_civil",
                                    "local_ocorrencia", "circunstancia_obito", "tipo_parto", "consultas_prenatal",
@@ -1188,7 +1300,7 @@ def pagina_analise():
                 st.markdown(f"##### {rot(v)}")
                 if desc_u:
                     st.caption(f"Só entre {desc_u} (n={fmt(len(s))}); nos demais registros a variável não se aplica.")
-                st.altair_chart(g_barras_h(d, "categoria", ordem=ordem), width="stretch")
+                mostrar_grafico(st, g_barras_h(d, "categoria", ordem=ordem), f"perfil_{v}")
             relatorio[f"Perfil – {v}"[:31]] = d
         num = [v for v in ["idade_anos", "idade_mae", "peso_g", "semanas_gestacao", "permanencia_dias",
                            "valor_total_rs"] if v in df]
@@ -1202,7 +1314,7 @@ def pagina_analise():
                                    "DP": round(x.std(), 2), "Mediana": round(x.median(), 2),
                                    "P25": round(x.quantile(.25), 2), "P75": round(x.quantile(.75), 2),
                                    "Mín": round(x.min(), 2), "Máx": round(x.max(), 2)})
-            st.dataframe(pd.DataFrame(linhas), hide_index=True, width="stretch")
+            mostrar_tabela(st, pd.DataFrame(linhas), "variaveis_numericas", hide_index=True, width="stretch")
             relatorio["Numéricas"] = pd.DataFrame(linhas)
 
     # =============== Geografia
@@ -1234,7 +1346,7 @@ def pagina_analise():
                     vals = g.rename(columns={"mun_residencia_cod_ibge7": "codarea", "mun_residencia_nome": "nome"})
                     vals = vals[["codarea", "nome", "n", campo]].to_dict("records") if campo != "n" else \
                         vals[["codarea", "nome", "n"]].to_dict("records")
-                    st.altair_chart(g_mapa({"features": feats}, vals, campo, titulo), width="stretch")
+                    mostrar_grafico(st, g_mapa({"features": feats}, vals, campo, titulo), "mapa_municipios")
                 except Exception as e:
                     st.info(f"Mapa indisponível ({e}).")
             elif len(ufs_dados) > 3:
@@ -1247,8 +1359,8 @@ def pagina_analise():
                         pu = pop[pop["ano"].isin(df[ano_col].dropna().unique())].groupby("uf")["populacao"].sum()
                         gu["taxa"] = (gu["n"] / gu["mun_residencia_uf"].map(pu) * mult).round(2)
                         campo_u = "taxa"
-                    st.altair_chart(g_mapa(_malha_ufs(), gu[["codarea", "nome", "n"] + (["taxa"] if usar_taxa else [])]
-                                           .to_dict("records"), campo_u, titulo), width="stretch")
+                    mostrar_grafico(st, g_mapa(_malha_ufs(), gu[["codarea", "nome", "n"] + (["taxa"] if usar_taxa else [])]
+                                               .to_dict("records"), campo_u, titulo), "mapa_ufs")
                     st.caption("Mapa por UF (mais de 3 UFs na seleção).")
                 except Exception as e:
                     st.info(f"Mapa indisponível ({e}).")
@@ -1256,9 +1368,9 @@ def pagina_analise():
             top = g.sort_values(ordem_col, ascending=False)
             if usar_taxa:
                 st.caption("Atenção: municípios pequenos têm taxas instáveis — observe o IC95%.")
-            st.dataframe(top.drop(columns=["mun_residencia_cod_ibge7"]).rename(columns={
+            mostrar_tabela(st, top.drop(columns=["mun_residencia_cod_ibge7"]).rename(columns={
                 "mun_residencia_cod_ibge6": "cód. IBGE", "mun_residencia_nome": "Município",
-                "mun_residencia_uf": "UF", "pessoas_ano": "pessoas-ano"}),
+                "mun_residencia_uf": "UF", "pessoas_ano": "pessoas-ano"}), "ranking_municipios",
                 hide_index=True, width="stretch", height=360)
             relatorio["Municípios"] = top
 
@@ -1275,15 +1387,15 @@ def pagina_analise():
             d["Descrição"] = d["CID"].map(lambda c: desc.get(c, ""))
             d["%"] = (100 * d["n"] / len(df)).round(1)
             d["causa"] = d["CID"] + " " + d["Descrição"].str.slice(0, 45)
-            st.altair_chart(g_barras_h(d[["causa", "n", "%", "CID", "Descrição"]], "causa"),
-                            width="stretch")
+            mostrar_grafico(st, g_barras_h(d[["causa", "n", "%", "CID", "Descrição"]], "causa"), "principais_causas")
             st.caption(f"Principais categorias CID-10 (3 caracteres); % sobre {fmt(len(df))} registros.")
             relatorio["Principais causas"] = d.drop(columns="causa")
             if "cid10_capitulo_nome" in df:
                 cap = df.groupby(["cid10_capitulo", "cid10_capitulo_nome"]).size().reset_index(name="n")
                 cap["%"] = (100 * cap["n"] / cap["n"].sum()).round(1)
                 with st.expander("Por capítulo da CID-10"):
-                    st.dataframe(cap.sort_values("n", ascending=False), hide_index=True, width="stretch")
+                    mostrar_tabela(st, cap.sort_values("n", ascending=False), "capitulos_cid10", hide_index=True,
+                                   width="stretch")
                 relatorio["Capítulos CID-10"] = cap
 
     # =============== Tabela 1
@@ -1303,12 +1415,11 @@ def pagina_analise():
             a, b = st.columns(2)
             vc_ = a.multiselect("Variáveis categóricas", cat_disp, default=cat_disp[:4], format_func=rot, key=k + "t1c")
             vn_ = b.multiselect("Variáveis numéricas", num_disp, default=num_disp[:2], format_func=rot, key=k + "t1n")
-            d = df.copy()
-            d[grupo] = limitar_niveis(d[grupo], 10)
+            d = preparar_comparacao(df, grupo, False, 10)  # ignorados: tratados por excluir_ignorados
             univ = {v: u[0] for v in vc_ if (u := universo(d, v, sistema)) is not None}
             t1 = E.tabela1(d, grupo, vc_, vn_, excluir_ignorados=excl, universos=univ)
             t1["Variável"] = t1["Variável"].map(lambda v: rot(v) if v and v != "n" else v)
-            st.dataframe(t1, hide_index=True, width="stretch", height=min(700, 38 + 35 * len(t1)))
+            mostrar_tabela(st, t1, "tabela_1", hide_index=True, width="stretch", height=min(700, 38 + 35 * len(t1)))
             st.caption("Categóricas: n (%) na coluna; teste qui-quadrado de Pearson ou exato de Fisher; efeito = V de "
                        "Cramér (≈0,1 pequeno, 0,3 médio, 0,5 grande). Numéricas: mediana (P25–P75) e média (DP); "
                        "Mann-Whitney ou Kruskal-Wallis. Com amostras grandes, diferenças pequenas ficam "
@@ -1322,12 +1433,8 @@ def pagina_analise():
                     "**Buscar dados** (ex.: 2010–2023).")
         else:
             usa_tx = pop is not None and len(pop) > 0 and (grupo is None or grupo in GRUPOS_TAXA)
-            d = df.copy()
             g_var = grupo
-            if g_var:
-                d[g_var] = limitar_niveis(d[g_var])
-                if excl:
-                    d = d[~d[g_var].isin(E.AUSENTES)]
+            d = preparar_comparacao(df, g_var, excl) if g_var else df
             serie = d.groupby([ano_col] + ([g_var] if g_var else []), observed=True).size().reset_index(name="n")
             serie = serie.rename(columns={ano_col: "ano"})
             medida = "n"
@@ -1363,12 +1470,12 @@ def pagina_analise():
                                 "IC95%": f"{fmt(r['ic95_inf'], 2)} a {fmt(r['ic95_sup'], 2)}",
                                 "p": E.fmt_p(r["p"]), "Tendência": r["tendencia"],
                                 "Durbin-Watson": round(r["durbin_watson"], 2)})
-            st.altair_chart(g_linha(serie.round(2), "ano", medida, g_var,
-                                    {"taxa": f"Taxa por {por_txt}", "pct": "%"}.get(medida, f"Número de {evento}")),
-                            width="stretch")
+            mostrar_grafico(st, g_linha(serie.round(2), "ano", medida, g_var,
+                                        {"taxa": f"Taxa por {por_txt}", "pct": "%"}.get(medida, f"Número de {evento}")),
+                            "tendencia")
             if res:
                 tr = pd.DataFrame(res)
-                st.dataframe(tr, hide_index=True, width="stretch")
+                mostrar_tabela(st, tr, "tendencia_prais_winsten", hide_index=True, width="stretch")
                 relatorio["Tendência (Prais-Winsten)"] = tr
             st.caption("Regressão de Prais-Winsten sobre log10 da medida (Antunes & Cardoso, 2015). "
                        "VPA = variação percentual anual = (10^β − 1)×100. Tendência estacionária quando p ≥ 0,05. "
@@ -1451,10 +1558,10 @@ def pagina_analise():
                            + ", ".join(resumo["omitidas"][:15]))
             vis = tab.drop(columns=[c for c in tab.columns if c.startswith("_")]).copy()
             vis["Variável"] = vis["Variável"].map(lambda v: rot(v) if v else v)
-            st.dataframe(vis, hide_index=True, width="stretch")
+            mostrar_tabela(st, vis, "regressao_logistica", hide_index=True, width="stretch")
             fp = g_forest(tab)
             if fp is not None:
-                st.altair_chart(fp, width="stretch")
+                mostrar_grafico(st, fp, "grafico_floresta")
             st.caption("OR bruto: um modelo por variável. OR ajustado: todas as variáveis no mesmo modelo. "
                        "Categorias com menos de 5 registros ou sem variação no desfecho são omitidas.")
             relatorio["Regressão logística"] = vis
@@ -1500,6 +1607,7 @@ def pagina_analise():
         st.download_button("⬇️ Baixar relatório (Excel)", buf.getvalue(), type="primary",
                            file_name=f"analise_{nome}_{date.today().isoformat()}.xlsx",
                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        botao_zip(st, "analise", f"figuras_{nome}_{date.today().isoformat()}")
         if len(df) <= 300_000:
             # montado só quando pedido (antes era refeito a cada clique) e com todas as variáveis, inclusive as
             # originais que a página não carrega: lê o parquet em lotes e guarda só as linhas filtradas

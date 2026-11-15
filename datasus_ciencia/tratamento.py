@@ -237,6 +237,18 @@ TB_HIV = {"1": "Positivo", "2": "Negativo", "3": "Em andamento", "4": "Não real
 HANS_CLASSOP = {"1": "Paucibacilar", "2": "Multibacilar"}
 HANS_FORMA = {"1": "Indeterminada", "2": "Tuberculoide", "3": "Dimorfa", "4": "Virchowiana", "5": "Não classificada"}
 TB, HANS = ("A15", "A16", "A17", "A18", "A19"), ("A30",)
+# sífilis em gestante (SIFG, CID O98.1): marcadores do TabNet
+SIFG = ("O981",)
+SIFG_TRIMESTRE = {"1": "1º trimestre", "2": "2º trimestre", "3": "3º trimestre", "4": "Idade gestacional ignorada"}
+SIFG_CLASSIF = {"1": "Primária", "2": "Secundária", "3": "Terciária", "4": "Latente"}
+SIFG_TESTE = {"1": "Reativo", "2": "Não reativo", "3": "Não realizado"}
+SIFG_ESQUEMA = {"1": "Penicilina G benzatina 2.400.000 UI", "2": "Penicilina G benzatina 4.800.000 UI",
+                "3": "Penicilina G benzatina 7.200.000 UI", "4": "Outro esquema", "5": "Não realizado"}
+SIFG_MOT_PARC = {"1": "Parceiro não teve mais contato com a gestante",
+                 "2": "Parceiro não foi comunicado/convocado à US para tratamento",
+                 "3": "Parceiro comunicado/convocado, mas não compareceu",
+                 "4": "Parceiro comunicado/convocado, mas recusou o tratamento",
+                 "5": "Parceiro com sorologia não reagente", "6": "Outro motivo"}
 EXTRAS_DECOD = [  # (coluna original, coluna derivada, mapa, prefixos CID do agravo SINAN ou None = qualquer)
     ("TPROBSON", "grupo_robson", ROBSON, None), ("KOTELCHUCK", "adequacao_prenatal", KOTELCHUCK, None),
     ("CRITERIO", "criterio_confirmacao", SINAN_CRITERIO, None), ("HOSPITALIZ", "hospitalizacao", SIM_NAO_IGN, None),
@@ -244,6 +256,15 @@ EXTRAS_DECOD = [  # (coluna original, coluna derivada, mapa, prefixos CID do agr
     ("TRATAMENTO", "tipo_entrada_tb", TB_ENTRADA, TB), ("SITUA_ENCE", "encerramento_tb", TB_ENCERRA, TB),
     ("HIV", "hiv_tb", TB_HIV, TB), ("CLASSOPERA", "classificacao_operacional", HANS_CLASSOP, HANS),
     ("FORMACLINI", "forma_clinica_hans", HANS_FORMA, HANS),
+    ("CS_GESTANT", "idade_gestacional_sifg", SIFG_TRIMESTRE, SIFG),
+    ("PRE_UFREL", "uf_prenatal", UF_POR_CODIGO, SIFG),
+    ("TPEVIDENCI", "classificacao_clinica_sifg", SIFG_CLASSIF, SIFG),
+    ("TPTESTE1", "teste_nao_treponemico", SIFG_TESTE, SIFG),
+    ("TPCONFIRMA", "teste_treponemico", SIFG_TESTE, SIFG),
+    ("TPESQUEMA", "esquema_tratamento", SIFG_ESQUEMA, SIFG),
+    ("TRATPARC", "parceiro_tratado", SIM_NAO_IGN, SIFG),
+    ("TPESQPAR", "esquema_tratamento_parceiro", SIFG_ESQUEMA, SIFG),
+    ("TPMOTPARC", "motivo_parceiro_nao_tratado", SIFG_MOT_PARC, SIFG),
 ]
 
 
