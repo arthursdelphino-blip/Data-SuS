@@ -207,6 +207,7 @@
   }
   .contato h3 { margin: 0 0 8px; font-size: 24px; }
   .contato p { margin: 0 0 22px; color: var(--secundario); }
+  .contato .botao { max-width: 100%; overflow-wrap: anywhere; justify-content: center; }
 
   /* Rodapé */
   footer { padding: 40px 0; border-top: 1px solid var(--borda); color: var(--secundario); font-size: 14px; }
@@ -225,6 +226,8 @@
     .grade, .passos, .servicos, .pratica { grid-template-columns: 1fr; }
     .janela { margin-top: 40px; }
     .tabela th, .tabela td { padding: 12px 14px; }
+    .etiqueta { white-space: normal; }
+    .tabela td { overflow-wrap: anywhere; }
     .painel { grid-template-columns: 1fr; padding: 22px 20px; gap: 22px; }
     .tabela .col-sist { display: none; }
     .acoes .botao { flex: 1 1 100%; justify-content: center; }
@@ -245,6 +248,7 @@
       <a href="#recursos">Recursos</a>
       <a href="#confiabilidade">Confiabilidade</a>
       <a href="#instalar">Instalar</a>
+      <a href="#usar">Como usar</a>
       <a href="#servicos">Serviços</a>
     </nav>
   </div>
@@ -494,29 +498,57 @@
     <div class="container">
       <div class="rotulo">Como instalar</div>
       <h2>Pronto em quatro passos</h2>
-      <p class="intro">Só no Windows, uma vez por computador. O passo a passo completo está no <a href="https://github.com/arthursdelphino-blip/Data-SuS#instalação-passo-a-passo-windows">GitHub</a>.</p>
+      <p class="intro">Para Windows. Você faz isso uma vez só por computador e não precisa digitar nenhum comando.</p>
       <div class="passos">
         <div class="passo">
           <h3>Instale o Python</h3>
-          <p>Baixe o Python 3.12 em python.org e marque <em>“Add python.exe to PATH”</em>.</p>
+          <p>Baixe em <a href="https://www.python.org/downloads/">python.org</a>. Na primeira tela do instalador, <strong>marque “Add python.exe to PATH”</strong> e clique em <em>Install Now</em>.</p>
         </div>
         <div class="passo">
           <h3>Baixe o programa</h3>
-          <p>Clique em <a href="https://github.com/arthursdelphino-blip/Data-SuS/archive/refs/heads/main.zip">Baixar grátis</a> e extraia o ZIP.</p>
+          <p>Clique em <a href="https://github.com/arthursdelphino-blip/Data-SuS/archive/refs/heads/main.zip">Baixar grátis</a>. Clique com o botão direito no arquivo baixado e escolha <em>Extrair tudo</em>.</p>
         </div>
         <div class="passo">
-          <h3>Prepare o ambiente</h3>
-          <p>No PowerShell, dentro da pasta: <code>python -m venv .venv</code> e depois <code>.\.venv\Scripts\python.exe -m pip install -r requirements.txt</code></p>
+          <h3>Instale com dois cliques</h3>
+          <p>Abra a pasta extraída e dê dois cliques em <code>instalar.bat</code>. Espere aparecer <em>“Pronto!”</em> (de 3 a 10 minutos).</p>
         </div>
         <div class="passo">
-          <h3>Abra a interface</h3>
-          <p>Dê dois cliques em <code>interface.bat</code>. O navegador abre sozinho.</p>
+          <h3>Abra o programa</h3>
+          <p>Sempre que quiser usar, dê dois cliques em <code>interface.bat</code>. O programa abre no navegador.</p>
         </div>
       </div>
+      <p class="nota">Se o Windows mostrar “O Windows protegeu o computador”, clique em <em>Mais informações</em> e depois em <em>Executar assim mesmo</em>. O aviso aparece com qualquer arquivo baixado da internet.</p>
     </div>
   </section>
 
-  <section id="servicos">
+  <section id="usar">
+    <div class="container">
+      <div class="rotulo">Como usar</div>
+      <h2>Sua primeira análise</h2>
+      <p class="intro">Com o programa aberto no navegador, siga estes passos. O menu à esquerda tem três páginas: <strong>Buscar dados</strong>, <strong>Análise</strong> e <strong>Indicadores</strong>.</p>
+      <div class="passos">
+        <div class="passo">
+          <h3>Escolha os dados</h3>
+          <p>Em <strong>Buscar dados</strong>, aba <em>Nova busca</em>, escolha o <em>Sistema de informação</em> (ex.: SIM), as <em>UFs</em> e o <em>Período (anos)</em>.</p>
+        </div>
+        <div class="passo">
+          <h3>Filtre e baixe</h3>
+          <p>Se quiser só uma doença, abra <em>Filtros e opções avançadas</em> e escolha a CID-10. Clique em <strong>Buscar e organizar dados</strong> e espere terminar.</p>
+        </div>
+        <div class="passo">
+          <h3>Analise</h3>
+          <p>Vá em <strong>Análise</strong>, escolha a base em <em>Base de dados</em> e use os filtros da barra lateral (sexo, idade, município...). As abas mostram séries, mapa, Tabela 1 e tendência.</p>
+        </div>
+        <div class="passo">
+          <h3>Leve os resultados</h3>
+          <p>Na aba <em>Relatório</em>, clique em <strong>Baixar relatório (Excel)</strong>. Ali também ficam o texto de métodos e o rascunho do resumo para congresso.</p>
+        </div>
+      </div>
+      <p class="nota">Dica: para taxas como mortalidade infantil, use a página <strong>Indicadores</strong>; se faltar o denominador (ex.: nascidos vivos), ela mostra um botão para baixá-lo.</p>
+    </div>
+  </section>
+
+  <section id="servicos" class="alt">
     <div class="container">
       <div class="rotulo">Serviços</div>
       <h2>Precisa de ajuda com a sua pesquisa?</h2>

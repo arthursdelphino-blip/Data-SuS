@@ -157,22 +157,16 @@ import pandas as pd; df = pd.read_parquet("dados/processados/SIM_SP_2018-2022/SI
 
 ## Instalação passo a passo (Windows)
 
-Você só faz isto uma vez por computador.
+Você faz isto uma vez só por computador e não precisa digitar nenhum comando.
 
-1. **Instale o Python 3.12**: baixe em <https://www.python.org/downloads/> e, na primeira tela do instalador, **marque "Add python.exe to PATH"** antes de clicar em *Install Now*.
-2. **Baixe o programa**: em <https://github.com/arthursdelphino-blip/Data-SuS>, clique no botão verde **Code → Download ZIP** e extraia o ZIP, por exemplo, na Área de Trabalho.
-3. **Abra o PowerShell na pasta**: abra a pasta extraída, clique na barra de endereço do Explorador de Arquivos, digite `powershell` e aperte Enter.
-4. **Crie o ambiente do programa** (leva alguns minutos):
+1. **Instale o Python**: baixe em <https://www.python.org/downloads/>. Na primeira tela do instalador, **marque "Add python.exe to PATH"** e clique em *Install Now*.
+2. **Baixe o programa**: em <https://github.com/arthursdelphino-blip/Data-SuS>, clique no botão verde **Code → Download ZIP**. Depois clique com o botão direito no arquivo baixado e escolha **Extrair tudo** (por exemplo, na Área de Trabalho).
+3. **Instale com dois cliques**: abra a pasta extraída e dê dois cliques em **`instalar.bat`**. Uma janela preta mostra o andamento; espere aparecer **"Pronto!"** (de 3 a 10 minutos, precisa de internet).
+4. **Abra o programa**: sempre que quiser usar, dê dois cliques em **`interface.bat`**. O programa abre no navegador (http://localhost:8501). Para encerrar, feche a janela preta.
 
-```bash
-python -m venv .venv
-```
-
-```bash
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-5. **Abra a interface**: dê dois cliques em `interface.bat`. O navegador abre sozinho em http://localhost:8501.
+> Se o Windows mostrar "O Windows protegeu o computador", clique em **Mais informações → Executar assim mesmo**. O aviso aparece com qualquer arquivo baixado da internet.
+>
+> Se o `instalar.bat` disser que não encontrou o Python, ele abre a página de download: instale marcando "Add python.exe to PATH" e dê dois cliques no `instalar.bat` de novo.
 
 Os dados baixados ficam na pasta `dados/` do seu computador. Precisa de internet para acessar o FTP do DATASUS; o restante funciona offline.
 
