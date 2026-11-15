@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data-SUS · Microdados do SUS para pesquisa</title>
+<meta name="description" content="Baixe, trate e analise microdados do DATASUS (SIM, SINASC, SIH, SIA, SINAN, CNES) sem programar. Gratuito e de código aberto.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fundo: #0B1A2E;
+    --fundo-2: #0E2038;
+    --cartao: #132A46;
+    --borda: #1F3A5C;
+    --destaque: #22B8CF;
+    --destaque-forte: #3FD0E6;
+    --texto: #E6EEF7;
+    --secundario: #8FA6BF;
+    --ok: #3DD68C;
+    --aviso: #F2C14E;
+    --raio: 14px;
+    --largura: 1120px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--texto);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--destaque); text-decoration: none; }
+  a:hover { color: var(--destaque-forte); }
+  .container { max-width: var(--largura); margin: 0 auto; padding: 0 20px; }
+
+  /* Menu */
+  header.menu {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(11, 26, 46, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--borda);
+  }
+  .menu .container { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .marca { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; color: var(--texto); }
+  .marca .logo {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--destaque), #1A6FA8);
+    display: grid; place-items: center;
+  }
+  .menu nav { display: flex; gap: 28px; }
+  .menu nav a { color: var(--secundario); font-weight: 500; font-size: 15px; }
+  .menu nav a:hover { color: var(--texto); }
+
+  /* Botões */
+  .botao {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px;
+    font-weight: 600; font-size: 16px; transition: .15s;
+  }
+  .botao.primario { background: var(--destaque); color: #06202A; }
+  .botao.primario:hover { background: var(--destaque-forte); color: #06202A; }
+  .botao.secundario { border: 1px solid var(--borda); color: var(--texto); background: var(--cartao); }
+  .botao.secundario:hover { border-color: var(--destaque); color: var(--texto); }
+
+  /* Topo */
+  .topo {
+    padding: 96px 0 80px;
+    background:
+      radial-gradient(800px 400px at 80% -10%, rgba(34, 184, 207, 0.18), transparent 60%),
+      radial-gradient(600px 300px at 0% 110%, rgba(26, 111, 168, 0.20), transparent 60%);
+  }
+  .selo {
+    display: inline-block; padding: 6px 14px; border-radius: 999px;
+    background: rgba(34, 184, 207, 0.12); color: var(--destaque);
+    font-size: 14px; font-weight: 600; border: 1px solid rgba(34, 184, 207, 0.3);
+  }
+  .topo h1 {
+    font-size: clamp(34px, 5.5vw, 58px); line-height: 1.1; font-weight: 800;
+    letter-spacing: -0.02em; margin: 22px 0 18px; max-width: 820px;
+  }
+  .topo h1 span { color: var(--destaque); }
+  .topo p.sub { font-size: 19px; color: var(--secundario); max-width: 680px; margin: 0 0 34px; }
+  .acoes { display: flex; gap: 14px; flex-wrap: wrap; }
+  /* Menu dos sistemas */
+  .sistemas-bloco { margin-top: 44px; }
+  .sistemas-dica { font-size: 14px; color: var(--secundario); margin: 0 0 12px; }
+  .sistemas { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sistemas button {
+    font: inherit; cursor: pointer;
+    padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    background: var(--cartao); border: 1px solid var(--borda); color: var(--secundario);
+    transition: .15s;
+  }
+  .sistemas button b { color: var(--texto); font-weight: 700; }
+  .sistemas button:hover { border-color: rgba(34, 184, 207, 0.5); color: var(--texto); }
+  .sistemas button[aria-selected="true"] {
+    background: rgba(34, 184, 207, 0.14); border-color: var(--destaque); color: var(--texto);
+  }
+  .sistemas button[aria-selected="true"] b { color: var(--destaque); }
+  .sistemas button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+  .painel {
+    margin-top: 16px; padding: 28px 30px; border-radius: var(--raio);
+    background: var(--cartao); border: 1px solid var(--borda);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 28px 40px;
+    animation: surgir .2s ease;
+  }
+  .painel[hidden] { display: none; }
+  @keyframes surgir { from { transform: translateY(-4px); } to { transform: none; } }
+  .painel h3 { grid-column: 1 / -1; margin: 0; font-size: 22px; }
+  .painel h3 small { display: block; font-size: 15px; font-weight: 500; color: var(--secundario); margin-top: 4px; }
+  .painel h4 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--destaque); }
+  .painel p { margin: 0; color: var(--secundario); font-size: 16px; }
+  .painel ul { margin: 0; padding: 0; list-style: none; }
+  .painel li { padding-left: 24px; position: relative; color: var(--secundario); margin-bottom: 8px; font-size: 16px; }
+  .painel li::before { content: "✓"; position: absolute; left: 0; color: var(--destaque); font-weight: 700; }
+  .vars { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .vars span { font-size: 13px; padding: 3px 10px; border-radius: 6px; background: rgba(0,0,0,.25); border: 1px solid var(--borda); color: var(--texto); }
+  .painel .atencao { grid-column: 1 / -1; padding: 12px 16px; border-radius: 10px; background: rgba(242,193,78,.08); border: 1px solid rgba(242,193,78,.25); font-size: 15px; }
+  .painel .atencao strong { color: var(--aviso); }
+
+  /* Prints */
+  .janela {
+    margin-top: 56px; border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--borda); background: var(--cartao);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(34, 184, 207, 0.08);
+  }
+  .janela .barra { display: flex; gap: 7px; padding: 12px 16px; border-bottom: 1px solid var(--borda); }
+  .janela .barra i { width: 11px; height: 11px; border-radius: 50%; background: #2C4A6E; }
+  .janela img { display: block; width: 100%; height: auto; }
+  .pratica { display: grid; grid-template-columns: 5fr 7fr; gap: 48px; align-items: center; }
+  .pratica ul { margin: 0; padding: 0; list-style: none; }
+  .pratica li { padding-left: 26px; position: relative; color: var(--secundario); margin-bottom: 10px; }
+  .pratica li::before { content: "✓"; position: absolute; left: 0; color: var(--destaque); font-weight: 700; }
+  .pratica .janela { margin-top: 0; }
+
+  /* Seções */
+  section { padding: 88px 0; scroll-margin-top: 64px; }
+  section.alt { background: var(--fundo-2); border-top: 1px solid var(--borda); border-bottom: 1px solid var(--borda); }
+  .rotulo { color: var(--destaque); font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+  h2 { font-size: clamp(28px, 4vw, 38px); line-height: 1.2; margin: 10px 0 14px; letter-spacing: -0.01em; }
+  .intro { color: var(--secundario); max-width: 680px; margin: 0 0 44px; }
+
+  /* Cartões de recursos */
+  .grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .cartao {
+    background: var(--cartao); border: 1px solid var(--borda);
+    border-radius: var(--raio); padding: 28px;
+    transition: .2s;
+  }
+  .cartao:hover { border-color: rgba(34, 184, 207, 0.5); transform: translateY(-2px); }
+  .icone {
+    width: 44px; height: 44px; border-radius: 10px; margin-bottom: 18px;
+    display: grid; place-items: center;
+    background: rgba(34, 184, 207, 0.12); color: var(--destaque);
+  }
+  .cartao h3 { margin: 0 0 8px; font-size: 19px; }
+  .cartao p { margin: 0; color: var(--secundario); font-size: 16px; }
+
+  /* Tabela TabNet */
+  .tabela {
+    width: 100%; border-collapse: collapse; background: var(--cartao);
+    border: 1px solid var(--borda); border-radius: var(--raio); overflow: hidden;
+  }
+  .tabela th, .tabela td { padding: 16px 22px; text-align: left; border-bottom: 1px solid var(--borda); }
+  .tabela th { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--secundario); background: rgba(0,0,0,.15); }
+  .tabela tr:last-child td { border-bottom: 0; }
+  .tabela td.sist { color: var(--secundario); font-size: 15px; }
+  .etiqueta { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .etiqueta.ok { color: var(--ok); }
+  .etiqueta.quase { color: var(--aviso); }
+  .nota { color: var(--secundario); font-size: 14px; margin-top: 16px; }
+
+  /* Passos */
+  .passos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; counter-reset: passo; }
+  .passo { position: relative; padding-top: 56px; }
+  .passo::before {
+    counter-increment: passo; content: counter(passo);
+    position: absolute; top: 0; left: 0;
+    width: 40px; height: 40px; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 700;
+    background: var(--destaque); color: #06202A;
+  }
+  .passo h3 { margin: 0 0 6px; font-size: 18px; }
+  .passo p { margin: 0; color: var(--secundario); font-size: 15px; }
+  code {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13.5px;
+    background: rgba(0,0,0,.3); border: 1px solid var(--borda); padding: 2px 6px; border-radius: 6px;
+    color: var(--texto); word-break: break-word;
+  }
+
+  /* Serviços */
+  .servicos { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .servico { padding: 34px; }
+  .servico ul { margin: 16px 0 0; padding: 0; list-style: none; }
+  .servico li { padding-left: 26px; position: relative; color: var(--secundario); margin-bottom: 8px; font-size: 16px; }
+  .servico li::before { content: "✓"; position: absolute; left: 0; color: var(--destaque); font-weight: 700; }
+  .breve { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(242,193,78,.14); color: var(--aviso); margin-left: 8px; vertical-align: middle; }
+  .contato {
+    margin-top: 40px; padding: 36px; border-radius: var(--raio); text-align: center;
+    background: linear-gradient(135deg, rgba(34,184,207,.16), rgba(26,111,168,.16));
+    border: 1px solid rgba(34,184,207,.35);
+  }
+  .contato h3 { margin: 0 0 8px; font-size: 24px; }
+  .contato p { margin: 0 0 22px; color: var(--secundario); }
+
+  /* Rodapé */
+  footer { padding: 40px 0; border-top: 1px solid var(--borda); color: var(--secundario); font-size: 14px; }
+  footer .container { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  footer strong { color: var(--texto); }
+
+  @media (max-width: 900px) {
+    .grade { grid-template-columns: 1fr 1fr; }
+    .passos { grid-template-columns: 1fr 1fr; }
+    .pratica { grid-template-columns: 1fr; gap: 32px; }
+  }
+  @media (max-width: 640px) {
+    .menu nav { display: none; }
+    .topo { padding: 64px 0 56px; }
+    section { padding: 64px 0; }
+    .grade, .passos, .servicos, .pratica { grid-template-columns: 1fr; }
+    .janela { margin-top: 40px; }
+    .tabela th, .tabela td { padding: 12px 14px; }
+    .painel { grid-template-columns: 1fr; padding: 22px 20px; gap: 22px; }
+    .tabela .col-sist { display: none; }
+    .acoes .botao { flex: 1 1 100%; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<header class="menu">
+  <div class="container">
+    <a class="marca" href="#">
+      <span class="logo" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06202A" stroke-width="2.6" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>
+      </span>
+      Data-SUS
+    </a>
+    <nav>
+      <a href="#recursos">Recursos</a>
+      <a href="#confiabilidade">Confiabilidade</a>
+      <a href="#instalar">Instalar</a>
+      <a href="#servicos">Serviços</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="topo">
+    <div class="container">
+      <span class="selo">Gratuito e de código aberto</span>
+      <h1>Dos microdados do SUS ao trabalho científico, <span>sem precisar programar</span></h1>
+      <p class="sub">Baixe, trate e analise dados oficiais do DATASUS numa interface simples no navegador. Os indicadores são conferidos com o TabNet, a estatística sai pronta e o programa ainda monta o rascunho do resumo para congresso.</p>
+      <div class="acoes">
+        <a class="botao primario" href="https://github.com/arthursdelphino-blip/Data-SuS/archive/refs/heads/main.zip">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg>
+          Baixar grátis
+        </a>
+        <a class="botao secundario" href="https://github.com/arthursdelphino-blip/Data-SuS">Ver no GitHub</a>
+      </div>
+      <div class="sistemas-bloco">
+        <p class="sistemas-dica">Clique em um sistema para saber o que ele registra e o que dá para estudar:</p>
+        <div class="sistemas" role="tablist" aria-label="Sistemas do DATASUS">
+          <button role="tab" id="aba-sim" aria-controls="painel-sim" aria-selected="true"><b>SIM</b> · Óbitos</button>
+          <button role="tab" id="aba-sinasc" aria-controls="painel-sinasc" aria-selected="false" tabindex="-1"><b>SINASC</b> · Nascidos vivos</button>
+          <button role="tab" id="aba-sinan" aria-controls="painel-sinan" aria-selected="false" tabindex="-1"><b>SINAN</b> · Agravos</button>
+          <button role="tab" id="aba-sih" aria-controls="painel-sih" aria-selected="false" tabindex="-1"><b>SIH</b> · Internações</button>
+          <button role="tab" id="aba-sia" aria-controls="painel-sia" aria-selected="false" tabindex="-1"><b>SIA</b> · Ambulatorial</button>
+          <button role="tab" id="aba-cnes" aria-controls="painel-cnes" aria-selected="false" tabindex="-1"><b>CNES</b> · Estabelecimentos</button>
+        </div>
+
+        <div class="painel" role="tabpanel" id="painel-sim" aria-labelledby="aba-sim">
+          <h3>SIM<small>Sistema de Informações sobre Mortalidade</small></h3>
+          <div>
+            <h4>O que é</h4>
+            <p>Reúne as declarações de óbito de todo o país, por município de residência. No programa, de 1996 em diante, com a causa básica codificada pela CID-10. Também traz os óbitos fetais.</p>
+            <h4 style="margin-top: 20px">Principais variáveis</h4>
+            <div class="vars"><span>Causa básica (CID-10)</span><span>Idade</span><span>Sexo</span><span>Raça/cor</span><span>Escolaridade</span><span>Local do óbito</span><span>Município</span><span>Circunstância (causas externas)</span></div>
+          </div>
+          <div>
+            <h4>O que dá para estudar</h4>
+            <ul>
+              <li>Mortalidade por infarto, AVC, câncer e diabetes</li>
+              <li>Suicídio, homicídio e acidentes de trânsito</li>
+              <li>Mortalidade infantil e materna (junto com o SINASC)</li>
+              <li>Mortalidade prematura por DCNT (meta ODS 3.4)</li>
+              <li>Tendências e o impacto da COVID-19</li>
+              <li>Desigualdades por raça/cor, escolaridade e região</li>
+            </ul>
+          </div>
+          <p class="atencao"><strong>Atenção:</strong> causas mal definidas (R00–R99) e o sub-registro variam entre regiões; confira o percentual antes de comparar locais.</p>
+        </div>
+
+        <div class="painel" role="tabpanel" id="painel-sinasc" aria-labelledby="aba-sinasc" hidden>
+          <h3>SINASC<small>Sistema de Informações sobre Nascidos Vivos</small></h3>
+          <div>
+            <h4>O que é</h4>
+            <p>Reúne as declarações de nascido vivo, por município de residência da mãe, de 1996 em diante. Descreve a gestação, o parto e o recém-nascido.</p>
+            <h4 style="margin-top: 20px">Principais variáveis</h4>
+            <div class="vars"><span>Peso ao nascer</span><span>Semanas de gestação</span><span>Apgar</span><span>Tipo de parto</span><span>Consultas de pré-natal</span><span>Idade e escolaridade da mãe</span><span>Anomalia congênita</span><span>Grupo de Robson</span></div>
+          </div>
+          <div>
+            <h4>O que dá para estudar</h4>
+            <ul>
+              <li>Prematuridade e baixo peso ao nascer</li>
+              <li>Cesáreas pela classificação de Robson</li>
+              <li>Adequação do pré-natal (índice de Kotelchuck)</li>
+              <li>Gravidez na adolescência</li>
+              <li>Anomalias congênitas</li>
+              <li>Denominador da mortalidade infantil e materna</li>
+            </ul>
+          </div>
+          <p class="atencao"><strong>Atenção:</strong> registra só nascidos vivos; perdas fetais estão no SIM.</p>
+        </div>
+
+        <div class="painel" role="tabpanel" id="painel-sinan" aria-labelledby="aba-sinan" hidden>
+          <h3>SINAN<small>Sistema de Informação de Agravos de Notificação</small></h3>
+          <div>
+            <h4>O que é</h4>
+            <p>Reúne as notificações das doenças e agravos de notificação compulsória, cada um num arquivo próprio. Acompanha o caso da suspeita até o encerramento.</p>
+            <h4 style="margin-top: 20px">Agravos disponíveis (exemplos)</h4>
+            <div class="vars"><span>Dengue</span><span>Chikungunya</span><span>Zika</span><span>Tuberculose</span><span>Hanseníase</span><span>Sífilis (gestante, congênita, adquirida)</span><span>Violência</span><span>Intoxicações</span><span>Animais peçonhentos</span><span>e mais de 40 outros</span></div>
+          </div>
+          <div>
+            <h4>O que dá para estudar</h4>
+            <ul>
+              <li>Incidência e sazonalidade das arboviroses</li>
+              <li>Sífilis em gestante e sífilis congênita</li>
+              <li>Cura e abandono do tratamento da tuberculose e da hanseníase</li>
+              <li>Letalidade dos agravos</li>
+              <li>Perfil das vítimas de violência</li>
+              <li>Acidentes de trabalho e intoxicações</li>
+            </ul>
+          </div>
+          <p class="atencao"><strong>Atenção:</strong> depende da notificação; casos não notificados ficam de fora. Conte pelo ano de diagnóstico, como o TabNet.</p>
+        </div>
+
+        <div class="painel" role="tabpanel" id="painel-sih" aria-labelledby="aba-sih" hidden>
+          <h3>SIH<small>Sistema de Informações Hospitalares do SUS</small></h3>
+          <div>
+            <h4>O que é</h4>
+            <p>Reúne as internações pagas pelo SUS (autorizações de internação hospitalar, AIH), mês a mês, de 2008 em diante.</p>
+            <h4 style="margin-top: 20px">Principais variáveis</h4>
+            <div class="vars"><span>Diagnóstico principal (CID-10)</span><span>Procedimento (SIGTAP)</span><span>Dias de internação</span><span>UTI</span><span>Valor pago</span><span>Óbito hospitalar</span><span>Município de residência e do hospital</span></div>
+          </div>
+          <div>
+            <h4>O que dá para estudar</h4>
+            <ul>
+              <li>Taxas de internação por causa</li>
+              <li>Internações por condições sensíveis à atenção primária</li>
+              <li>Letalidade hospitalar</li>
+              <li>Custos e tempo de permanência</li>
+              <li>Procedimentos, como cirurgias e transplantes</li>
+              <li>Deslocamento de pacientes entre municípios</li>
+            </ul>
+          </div>
+          <p class="atencao"><strong>Atenção:</strong> cobre só o SUS (rede pública e conveniada); internações particulares e por plano de saúde ficam de fora. Cada registro é uma internação, não uma pessoa.</p>
+        </div>
+
+        <div class="painel" role="tabpanel" id="painel-sia" aria-labelledby="aba-sia" hidden>
+          <h3>SIA<small>Sistema de Informações Ambulatoriais do SUS</small></h3>
+          <div>
+            <h4>O que é</h4>
+            <p>Reúne a produção ambulatorial do SUS (consultas, exames e tratamentos), mês a mês, de 2008 em diante. As APAC detalham tratamentos de alto custo.</p>
+            <h4 style="margin-top: 20px">Principais arquivos</h4>
+            <div class="vars"><span>Produção ambulatorial</span><span>APAC quimioterapia</span><span>APAC radioterapia</span><span>Diálise</span><span>Medicamentos</span><span>Atenção psicossocial</span></div>
+          </div>
+          <div>
+            <h4>O que dá para estudar</h4>
+            <ul>
+              <li>Oferta e uso de exames, como mamografia e citopatológico</li>
+              <li>Tratamento do câncer (quimio e radioterapia)</li>
+              <li>Terapia renal substitutiva</li>
+              <li>Produção de serviços por município</li>
+            </ul>
+          </div>
+          <p class="atencao"><strong>Atenção:</strong> a produção ambulatorial conta procedimentos, não pessoas; para seguir pacientes, use as APAC.</p>
+        </div>
+
+        <div class="painel" role="tabpanel" id="painel-cnes" aria-labelledby="aba-cnes" hidden>
+          <h3>CNES<small>Cadastro Nacional de Estabelecimentos de Saúde</small></h3>
+          <div>
+            <h4>O que é</h4>
+            <p>Cadastro mensal dos estabelecimentos de saúde do país, públicos e privados, de 2005 em diante, com seus leitos, profissionais e equipamentos.</p>
+            <h4 style="margin-top: 20px">Principais arquivos</h4>
+            <div class="vars"><span>Estabelecimentos</span><span>Leitos</span><span>Profissionais</span><span>Equipamentos</span><span>Equipes</span></div>
+          </div>
+          <div>
+            <h4>O que dá para estudar</h4>
+            <ul>
+              <li>Leitos (incluindo UTI) por habitante</li>
+              <li>Profissionais por especialidade e região</li>
+              <li>Distribuição de equipamentos, como tomógrafos</li>
+              <li>Vazios assistenciais e acesso aos serviços</li>
+            </ul>
+          </div>
+          <p class="atencao"><strong>Atenção:</strong> mostra a estrutura cadastrada, não o uso; para saber quanto foi usado, combine com o SIH ou o SIA.</p>
+        </div>
+      </div>
+      <div class="janela">
+        <div class="barra" aria-hidden="true"><i></i><i></i><i></i></div>
+        <img src="img/panorama.png" width="2880" height="1800"
+             alt="Tela de Análise do Data-SUS: casos de sífilis em gestante no Rio de Janeiro, 2017–2025, com números-resumo, filtros na barra lateral e gráfico da taxa anual por 100 mil habitantes.">
+      </div>
+    </div>
+  </div>
+
+  <section id="recursos">
+    <div class="container">
+      <div class="rotulo">Recursos</div>
+      <h2>Tudo o que você precisa para pesquisar com dados do SUS</h2>
+      <p class="intro">O que levaria dias, entre baixar arquivos, decodificar variáveis e montar tabelas, passa a levar minutos.</p>
+      <div class="grade">
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div>
+          <h3>Bases prontas</h3>
+          <p>Microdados decodificados, com dicionário de variáveis, metadados e citação da fonte. Exporta para Excel, CSV, Stata e Parquet.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div>
+          <h3>Indicadores oficiais</h3>
+          <p>Mortalidade infantil e materna, incidência, internação e DCNT, com IC95%, taxas padronizadas e denominador automático.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg></div>
+          <h3>Mapas e gráficos</h3>
+          <p>Séries anuais, pirâmide etária, mapas por município e UF, e principais causas pela CID-10.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg></div>
+          <h3>Estatística pronta</h3>
+          <p>Tabela 1, Prais-Winsten, série temporal interrompida e regressão logística, com o texto de métodos já escrito.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6zM14 3v6h6M8 13h8M8 17h5"/></svg></div>
+          <h3>Resumo para congresso</h3>
+          <p>Achados ranqueados por relevância e um resumo estruturado (IMRD, 250–300 palavras) para você revisar.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
+          <h3>Roda no seu computador</h3>
+          <p>Funciona em PCs comuns de 8 GB, sem servidor e sem assinatura. Seus dados ficam com você.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pratica" class="alt">
+    <div class="container pratica">
+      <div>
+        <div class="rotulo">Veja na prática</div>
+        <h2>Do arquivo bruto ao mapa em poucos cliques</h2>
+        <p class="intro" style="margin-bottom: 24px">Escolha a base, o período e os filtros. O programa calcula as taxas com a população oficial e desenha o mapa por município.</p>
+        <ul>
+          <li>Taxas por 100 mil habitantes com IC95%</li>
+          <li>Ranking dos municípios</li>
+          <li>Filtros por sexo, idade, raça/cor e região de saúde</li>
+        </ul>
+      </div>
+      <div class="janela">
+        <div class="barra" aria-hidden="true"><i></i><i></i><i></i></div>
+        <img src="img/mapa.png" width="1840" height="955" loading="lazy"
+             alt="Mapa do estado do Rio de Janeiro com a taxa anual de sífilis em gestante por 100 mil habitantes em cada município, em tons de azul.">
+      </div>
+    </div>
+  </section>
+
+  <section id="confiabilidade">
+    <div class="container">
+      <div class="rotulo">Confiabilidade</div>
+      <h2>Conferido com o TabNet</h2>
+      <p class="intro">Os resultados foram comparados com o TabNet, a ferramenta oficial do Ministério da Saúde.</p>
+      <table class="tabela">
+        <thead><tr><th>Indicador</th><th class="col-sist">Sistema</th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td>Nascidos vivos</td><td class="sist col-sist">SINASC</td><td><span class="etiqueta ok">● Idêntico</span></td></tr>
+          <tr><td>Óbitos infantis por faixa etária</td><td class="sist col-sist">SIM</td><td><span class="etiqueta ok">● Idêntico</span></td></tr>
+          <tr><td>Óbitos maternos</td><td class="sist col-sist">SIM</td><td><span class="etiqueta ok">● Idêntico</span></td></tr>
+          <tr><td>Óbitos por infarto agudo do miocárdio</td><td class="sist col-sist">SIM</td><td><span class="etiqueta ok">● Idêntico</span></td></tr>
+          <tr><td>Sífilis em gestante (RJ, 2009–2025)</td><td class="sist col-sist">SINAN</td><td><span class="etiqueta ok">● Idêntico</span></td></tr>
+          <tr><td>Internações hospitalares</td><td class="sist col-sist">SIH</td><td><span class="etiqueta quase">● ~0,4% abaixo</span></td></tr>
+        </tbody>
+      </table>
+      <p class="nota">Nas internações, a pequena diferença vem de residentes internados em outras UFs.</p>
+    </div>
+  </section>
+
+  <section id="instalar" class="alt">
+    <div class="container">
+      <div class="rotulo">Como instalar</div>
+      <h2>Pronto em quatro passos</h2>
+      <p class="intro">Só no Windows, uma vez por computador. O passo a passo completo está no <a href="https://github.com/arthursdelphino-blip/Data-SuS#instalação-passo-a-passo-windows">GitHub</a>.</p>
+      <div class="passos">
+        <div class="passo">
+          <h3>Instale o Python</h3>
+          <p>Baixe o Python 3.12 em python.org e marque <em>“Add python.exe to PATH”</em>.</p>
+        </div>
+        <div class="passo">
+          <h3>Baixe o programa</h3>
+          <p>Clique em <a href="https://github.com/arthursdelphino-blip/Data-SuS/archive/refs/heads/main.zip">Baixar grátis</a> e extraia o ZIP.</p>
+        </div>
+        <div class="passo">
+          <h3>Prepare o ambiente</h3>
+          <p>No PowerShell, dentro da pasta: <code>python -m venv .venv</code> e depois <code>.\.venv\Scripts\python.exe -m pip install -r requirements.txt</code></p>
+        </div>
+        <div class="passo">
+          <h3>Abra a interface</h3>
+          <p>Dê dois cliques em <code>interface.bat</code>. O navegador abre sozinho.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="servicos">
+    <div class="container">
+      <div class="rotulo">Serviços</div>
+      <h2>Precisa de ajuda com a sua pesquisa?</h2>
+      <p class="intro">Além do programa gratuito, ofereço apoio para quem quer resultados prontos ou quer aprender a usar os dados do SUS.</p>
+      <div class="servicos">
+        <div class="cartao servico">
+          <h3>Análises sob encomenda</h3>
+          <p>Você diz o tema, o local e o período; eu entrego a análise pronta.</p>
+          <ul>
+            <li>Base tratada e documentada</li>
+            <li>Tabelas, gráficos e mapas</li>
+            <li>Métodos estatísticos redigidos</li>
+            <li>Rascunho do resumo para congresso</li>
+          </ul>
+        </div>
+        <div class="cartao servico">
+          <h3>Curso <span class="breve">EM BREVE</span></h3>
+          <p>Do DATASUS ao resumo de congresso, passo a passo.</p>
+          <ul>
+            <li>Como escolher a base certa</li>
+            <li>Indicadores e taxas sem erro</li>
+            <li>Como interpretar a estatística</li>
+            <li>Como escrever o resumo</li>
+          </ul>
+        </div>
+      </div>
+      <div class="contato">
+        <h3>Vamos conversar</h3>
+        <p>Conte o que você precisa e eu respondo com uma proposta.</p>
+        <a class="botao primario" href="mailto:arthursildelphino@gmail.com?subject=Data-SUS">arthursildelphino@gmail.com</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    <div>
+      <strong>Data-SUS</strong> · Desenvolvido por Arthur Delphino, estudante de Medicina da UFF<br>
+      Software livre sob licença <a href="https://github.com/arthursdelphino-blip/Data-SuS/blob/main/LICENSE">AGPL-3.0</a>
+    </div>
+    <div>
+      Dados: DATASUS / Ministério da Saúde.<br>
+      Projeto independente, sem vínculo oficial com o Ministério da Saúde.
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Abas dos sistemas: clique ou setas do teclado
+  (function () {
+    var abas = Array.prototype.slice.call(document.querySelectorAll('.sistemas [role="tab"]'));
+    function ativar(aba, focar) {
+      abas.forEach(function (a) {
+        var sel = a === aba;
+        a.setAttribute('aria-selected', sel);
+        a.tabIndex = sel ? 0 : -1;
+        document.getElementById(a.getAttribute('aria-controls')).hidden = !sel;
+      });
+      if (focar) aba.focus();
+    }
+    abas.forEach(function (aba, i) {
+      aba.addEventListener('click', function () { ativar(aba); });
+      aba.addEventListener('keydown', function (e) {
+        var j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: abas.length - 1 }[e.key];
+        if (j === undefined) return;
+        e.preventDefault();
+        ativar(abas[(j + abas.length) % abas.length], true);
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>

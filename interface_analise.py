@@ -22,10 +22,13 @@ from datasus_ciencia.saida import _rotulo
 from datasus_ciencia.tratamento import COLUNA_CID, diagnostico, expandir_cids, universo, variaveis_extras
 
 # ------------------------------------------------------------------ paleta (validada – skill dataviz)
-SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
+# Tema escuro (fundo marinho #0B1A2E, .streamlit/config.toml): passos "dark" da paleta categórica,
+# validados contra o fundo (todos >= 3:1, CVD adjacente >= 8,4). Sequencial: escuro = pouco, claro = muito.
+FUNDO = "#0B1A2E"
+SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"]
 CINZA = "#898781"
-AZUL = "#2a78d6"
-SEQ_AZUL = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
+AZUL = "#3987e5"
+SEQ_AZUL = ["#184f95", "#1c5cab", "#2a78d6", "#3987e5", "#6da7ec", "#9ec5f4", "#cde2fb"]
 COR_FIXA = {"Masculino": SERIES[0], "Feminino": SERIES[1]}
 
 # a primeira coluna disponível é o padrão. No SINAN, o TabNet conta pelo ano de diagnóstico (sífilis em gestante RJ
@@ -263,13 +266,13 @@ def limitar_niveis(s, maximo=8):
 
 
 def _eixo():
-    return {"gridColor": "#e1e0d9", "domainColor": "#c3c2b7", "tickColor": "#c3c2b7",
-            "labelColor": "#52514e", "titleColor": "#52514e"}
+    return {"gridColor": "#1F3A5C", "domainColor": "#2C4A6E", "tickColor": "#2C4A6E",
+            "labelColor": "#8FA6BF", "titleColor": "#8FA6BF"}
 
 
 def _cfg(ch):
     return ch.configure_axis(**_eixo()).configure_view(strokeWidth=0).configure_legend(
-        labelColor="#52514e", titleColor="#52514e", orient="top")
+        labelColor="#8FA6BF", titleColor="#8FA6BF", orient="top")
 
 
 # ------------------------------------------------------------------ gráficos
@@ -292,7 +295,7 @@ def g_linha(d, x, y, cor=None, titulo_y="n", banda=None):
             b_enc["color"] = alt.value(AZUL)
         camadas.append(base.mark_area(opacity=0.15).encode(**b_enc))
     camadas.append(base.mark_line(strokeWidth=2).encode(**enc))
-    camadas.append(base.mark_point(size=64, filled=True, stroke="#fcfcfb", strokeWidth=2).encode(**enc))
+    camadas.append(base.mark_point(size=64, filled=True, stroke=FUNDO, strokeWidth=2).encode(**enc))
     return _cfg(alt.layer(*camadas).properties(height=320))
 
 
@@ -366,7 +369,7 @@ def g_its(d, x, titulo_y, x_tipo="T"):
 
 def g_mapa(geo, valores, campo, titulo):
     feats = geo["features"]
-    ch = alt.Chart(alt.Data(values=feats)).mark_geoshape(stroke="#fcfcfb", strokeWidth=0.5).transform_lookup(
+    ch = alt.Chart(alt.Data(values=feats)).mark_geoshape(stroke=FUNDO, strokeWidth=0.5).transform_lookup(
         lookup="properties.codarea",
         from_=alt.LookupData(alt.Data(values=valores), "codarea", list(dict.fromkeys([campo, "nome", "n"])))
     ).encode(
@@ -387,7 +390,7 @@ def g_forest(tab):
     base = alt.Chart(d).encode(y=alt.Y("rotulo:N", sort=ordem, title=None, axis=alt.Axis(labelLimit=300)))
     regra = base.mark_rule(strokeWidth=2, color=AZUL).encode(
         x=alt.X("_inf:Q", scale=alt.Scale(type="log"), title="OR ajustado (IC95%, escala log)"), x2="_sup:Q")
-    ponto = base.mark_point(filled=True, size=80, color=AZUL, stroke="#fcfcfb", strokeWidth=2).encode(
+    ponto = base.mark_point(filled=True, size=80, color=AZUL, stroke=FUNDO, strokeWidth=2).encode(
         x="_or:Q", tooltip=["rotulo", alt.Tooltip("OR ajustado (IC95%)"), alt.Tooltip("p ajustado")])
     ref = alt.Chart(pd.DataFrame({"x": [1]})).mark_rule(color=CINZA, strokeDash=[4, 4]).encode(x="x:Q")
     return _cfg((ref + regra + ponto).properties(height=max(150, 26 * len(d))))
@@ -500,7 +503,7 @@ def aba_periodos(df, ano_col, mes_col, grupo, excl, y_ind, nome_ind, pop, mult, 
             y=alt.Y("Grupo:N", sort=ordem_g, title=None, axis=alt.Axis(labelLimit=260)),
             yOffset=alt.YOffset("Período:N"),
             color=alt.Color("Período:N", scale=alt.Scale(range=[CINZA, AZUL]), title=None))
-        pts = base.mark_point(filled=True, size=80, stroke="#fcfcfb", strokeWidth=2).encode(
+        pts = base.mark_point(filled=True, size=80, stroke=FUNDO, strokeWidth=2).encode(
             x=alt.X("valor:Q", title="%" if y_ind is not None else ("taxa" if usar_pop else "média anual"),
                     scale=alt.Scale(zero=y_ind is None)),
             tooltip=["Grupo", "Período", alt.Tooltip("valor:Q", format=".2f")])

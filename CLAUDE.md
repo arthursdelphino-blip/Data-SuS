@@ -1,4 +1,4 @@
-# Data-SuS
+# Data-SUS
 
 Programa `datasus_ciencia` para baixar e organizar microdados do DATASUS para pesquisa científica. Detalhes em README.md.
 

@@ -1,4 +1,4 @@
-# Data-SuS (`datasus_ciencia`)
+# Data-SUS (`datasus_ciencia`)
 
 **Dos microdados do SUS ao trabalho científico, sem precisar programar.** Baixe, trate e analise dados do SIM, SINASC, SIH, SIA, SINAN e CNES numa interface no navegador, com indicadores conferidos com o TabNet, estatística pronta e rascunho de resumo para congresso.
 
@@ -182,7 +182,7 @@ Todos os dados vêm do **DATASUS / Ministério da Saúde** (FTP público `ftp.da
 
 ## Como citar
 
-> DELPHINO, Arthur. Data-SuS: programa para obtenção e análise de microdados do DATASUS para pesquisa científica [software]. 2026. Disponível em: https://github.com/arthursdelphino-blip/Data-SuS. Acesso em: [data].
+> DELPHINO, Arthur. Data-SUS: programa para obtenção e análise de microdados do DATASUS para pesquisa científica [software]. 2026. Disponível em: https://github.com/arthursdelphino-blip/Data-SuS. Acesso em: [data].
 
 ## Suporte, cursos e análises sob encomenda
 

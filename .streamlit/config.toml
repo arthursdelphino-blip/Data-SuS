@@ -8,4 +8,17 @@ toolbarMode = "minimal"
 port = 8501
 
 [theme]
-primaryColor = "#1f6f8b"
+base = "dark"
+primaryColor = "#22B8CF"
+backgroundColor = "#0B1A2E"
+secondaryBackgroundColor = "#132A46"
+textColor = "#E6EEF7"
+borderColor = "#1F3A5C"
+linkColor = "#22B8CF"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+baseRadius = "medium"
+
+[theme.sidebar]
+backgroundColor = "#0E2038"
+secondaryBackgroundColor = "#132A46"
+borderColor = "#1F3A5C"
