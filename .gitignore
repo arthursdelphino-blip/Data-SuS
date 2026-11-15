@@ -1,0 +1,16 @@
+# Ambiente Python (cada pessoa cria o seu)
+.venv/
+__pycache__/
+*.pyc
+
+# Dados baixados, caches e logs (grandes e recriáveis pelo programa)
+dados/
+*.log
+
+# Configurações locais do Claude Code
+.claude/settings.local.json
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+desktop.ini
