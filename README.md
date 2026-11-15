@@ -186,8 +186,6 @@ Todos os dados vêm do **DATASUS / Ministério da Saúde** (FTP público `ftp.da
 
 ## Suporte, cursos e análises sob encomenda
 
-Desenvolvido por **Arthur Delphino**, estudante de Medicina da Universidade Federal Fluminense (UFF).
-
 Precisa de ajuda para usar o programa, de um curso ou de uma análise pronta para o seu trabalho? Entre em contato: **arthursildelphino@gmail.com**.
 
 ## Aviso
