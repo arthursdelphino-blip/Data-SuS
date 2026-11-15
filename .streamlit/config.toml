@@ -5,7 +5,7 @@ gatherUsageStats = false
 toolbarMode = "minimal"
 
 [server]
-port = 8501
+# Sem porta fixa: se a 8501 estiver ocupada, o Streamlit usa a próxima livre.
 
 [theme]
 base = "dark"
