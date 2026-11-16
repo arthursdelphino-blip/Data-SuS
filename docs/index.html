@@ -199,6 +199,10 @@
   .servico ul { margin: 16px 0 0; padding: 0; list-style: none; }
   .servico li { padding-left: 26px; position: relative; color: var(--secundario); margin-bottom: 8px; font-size: 16px; }
   .servico li::before { content: "✓"; position: absolute; left: 0; color: var(--destaque); font-weight: 700; }
+  .novo { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(61,214,140,.14); color: var(--ok); margin-left: 8px; vertical-align: middle; }
+  #curso { scroll-margin-top: 84px; }
+  .preco { margin: 18px 0 16px !important; color: var(--secundario); }
+  .preco strong { color: var(--texto); font-size: 22px; }
   .breve { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(242,193,78,.14); color: var(--aviso); margin-left: 8px; vertical-align: middle; }
   .contato {
     margin-top: 40px; padding: 36px; border-radius: var(--raio); text-align: center;
@@ -249,6 +253,7 @@
       <a href="#confiabilidade">Confiabilidade</a>
       <a href="#instalar">Instalar</a>
       <a href="#usar">Como usar</a>
+      <a href="#curso">Curso</a>
       <a href="#servicos">Serviços</a>
     </nav>
   </div>
@@ -266,6 +271,7 @@
           Baixar grátis
         </a>
         <a class="botao secundario" href="https://github.com/arthursdelphino-blip/Data-SuS">Ver no GitHub</a>
+        <a class="botao secundario" href="#curso">Curso em vídeo</a>
       </div>
       <div class="sistemas-bloco">
         <p class="sistemas-dica">Clique em um sistema para saber o que ele registra e o que dá para estudar:</p>
@@ -552,7 +558,7 @@
     <div class="container">
       <div class="rotulo">Serviços</div>
       <h2>Precisa de ajuda com a sua pesquisa?</h2>
-      <p class="intro">Além do programa gratuito, ofereço apoio para quem quer resultados prontos ou quer aprender a usar os dados do SUS.</p>
+      <p class="intro">Além do programa gratuito, ofereço apoio para quem quer resultados prontos e um curso em vídeo para quem quer aprender a usar os dados do SUS.</p>
       <div class="servicos">
         <div class="cartao servico">
           <h3>Análises sob encomenda</h3>
@@ -564,15 +570,17 @@
             <li>Rascunho do resumo para congresso</li>
           </ul>
         </div>
-        <div class="cartao servico">
-          <h3>Curso <span class="breve">EM BREVE</span></h3>
-          <p>Do DATASUS ao resumo de congresso, passo a passo.</p>
+        <div class="cartao servico" id="curso">
+          <h3>Curso: Do DATASUS ao Congresso <span class="novo">DISPONÍVEL</span></h3>
+          <p>Pesquisa com dados do SUS sem programar: 42 aulas em vídeo, em 13 módulos, do primeiro download ao resumo pronto.</p>
           <ul>
-            <li>Como escolher a base certa</li>
-            <li>Indicadores e taxas sem erro</li>
-            <li>Como interpretar a estatística</li>
-            <li>Como escrever o resumo</li>
+            <li>Instalação e primeira busca, passo a passo</li>
+            <li>SIM, SINASC, SIH, SINAN, SIA e CNES na prática</li>
+            <li>Taxas, IC95%, Tabela 1, tendência e regressão</li>
+            <li>Figuras para publicação e resumo para congresso</li>
           </ul>
+          <p class="preco"><strong>R$ 19,90</strong> · acesso vitalício · garantia de 7 dias</p>
+          <a class="botao primario" href="https://pay.hotmart.com/S108528615Y?off=x2gwk4qd">Quero o curso</a>
         </div>
       </div>
       <div class="contato">

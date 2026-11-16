@@ -2,6 +2,8 @@
 
 **Dos microdados do SUS ao trabalho científico, sem precisar programar.** Baixe, trate e analise dados do SIM, SINASC, SIH, SIA, SINAN e CNES numa interface no navegador, com indicadores conferidos com o TabNet, estatística pronta e rascunho de resumo para congresso.
 
+> 🎓 **Curso em vídeo:** [Do DATASUS ao Congresso: pesquisa com dados do SUS sem programar](https://pay.hotmart.com/S108528615Y?off=x2gwk4qd). São 42 aulas em 13 módulos, da instalação ao resumo para congresso (R$ 19,90, acesso vitalício).
+
 Programa gratuito e de código aberto (licença [AGPL‑3.0](#licença)) para **buscar microdados do DATASUS** (FTP público do Ministério da Saúde) e **organizá-los para produção científica**: base analítica tratada, dicionário de variáveis, tabela descritiva, metadados de reprodutibilidade, citação da fonte e texto de Métodos.
 
 ## Interface interativa (recomendado)
@@ -185,9 +187,10 @@ Todos os dados vêm do **DATASUS / Ministério da Saúde** (FTP público `ftp.da
 
 > DELPHINO, Arthur. Data-SUS: programa para obtenção e análise de microdados do DATASUS para pesquisa científica [software]. 2026. Disponível em: https://github.com/arthursdelphino-blip/Data-SuS. Acesso em: [data].
 
-## Suporte, cursos e análises sob encomenda
+## Curso, suporte e análises sob encomenda
 
-Precisa de ajuda para usar o programa, de um curso ou de uma análise pronta para o seu trabalho? Entre em contato: **arthursildelphino@gmail.com**.
+- **Curso em vídeo** [Do DATASUS ao Congresso](https://pay.hotmart.com/S108528615Y?off=x2gwk4qd): 42 aulas sobre a instalação, cada sistema do SUS, os indicadores, a estatística, as figuras e o resumo para congresso.
+- **Ajuda ou análise pronta** para o seu trabalho: escreva para **arthursildelphino@gmail.com**.
 
 ## Aviso
 
