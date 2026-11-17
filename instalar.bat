@@ -8,24 +8,33 @@ echo   Instalador do Data-SUS
 echo  ============================================
 echo.
 
-rem --- 1. Procura o Python (3.11 ou mais novo) ---
+rem --- 1. Procura o Python 3.11, 3.12 ou 3.13 ---
+rem     (versoes mais novas ainda nao tem o leitor de arquivos .dbc pronto para Windows)
 set "PY="
-py -3.12 -c "import sys" >nul 2>nul && set "PY=py -3.12"
-if not defined PY py -3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)" >nul 2>nul && set "PY=py -3"
-if not defined PY python -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)" >nul 2>nul && set "PY=python"
+set "PAGINA_PY=https://www.python.org/downloads/release/python-31317/"
+for %%V in (3.13 3.12 3.11) do if not defined PY (py -%%V -c "import sys" >nul 2>nul && set "PY=py -%%V")
+if not defined PY python -c "import sys; sys.exit(0 if (3, 11) <= sys.version_info[:2] <= (3, 13) else 1)" >nul 2>nul && set "PY=python"
 
 if not defined PY (
-    echo  [!] O Python nao foi encontrado neste computador.
+    set "OUTRO="
+    python --version >nul 2>nul && set "OUTRO=1"
+    py -3 --version >nul 2>nul && set "OUTRO=1"
+    if defined OUTRO (
+        echo  [!] O Python deste computador e de uma versao que o Data-SUS ainda nao aceita.
+        echo      O programa precisa do Python 3.11, 3.12 ou 3.13.
+    ) else (
+        echo  [!] O Python nao foi encontrado neste computador.
+    )
     echo.
     echo  Para resolver:
-    echo   1. Vai abrir a pagina de download do Python.
-    echo   2. Baixe e abra o instalador.
+    echo   1. Vai abrir a pagina do Python 3.13.
+    echo   2. Em Files, clique em Windows installer ^(64-bit^) e abra o arquivo baixado.
     echo   3. Na primeira tela, MARQUE a caixa "Add python.exe to PATH".
     echo   4. Clique em "Install Now" e espere terminar.
     echo   5. Depois, de dois cliques neste instalar.bat de novo.
     echo.
     pause
-    start "" "https://www.python.org/downloads/"
+    start "" "%PAGINA_PY%"
     exit /b 1
 )
 echo  [1/3] Python encontrado.

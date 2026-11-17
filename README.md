@@ -168,7 +168,7 @@ import pandas as pd; df = pd.read_parquet("dados/processados/SIM_SP_2018-2022/SI
 
 Você faz isto uma vez só por computador e não precisa digitar nenhum comando.
 
-1. **Instale o Python**: baixe em <https://www.python.org/downloads/>. Na primeira tela do instalador, **marque "Add python.exe to PATH"** e clique em *Install Now*.
+1. **Instale o Python 3.13**: abra <https://www.python.org/downloads/release/python-31317/> e, em *Files*, clique em *Windows installer (64-bit)*. Na primeira tela do instalador, **marque "Add python.exe to PATH"** e clique em *Install Now*. Use o 3.11, o 3.12 ou o 3.13: as versões mais novas (3.14 em diante) ainda não têm o leitor de arquivos `.dbc` pronto para Windows.
 2. **Baixe o programa**: em <https://github.com/arthursdelphino-blip/Data-SuS>, clique no botão verde **Code → Download ZIP**. Depois clique com o botão direito no arquivo baixado e escolha **Extrair tudo** (por exemplo, na Área de Trabalho).
 3. **Instale com dois cliques**: abra a pasta extraída e dê dois cliques em **`instalar.bat`**. Uma janela preta mostra o andamento; espere aparecer **"Pronto!"** (de 3 a 10 minutos, precisa de internet).
 4. **Abra o programa**: sempre que quiser usar, dê dois cliques em **`interface.bat`**. O programa abre no navegador (http://localhost:8501). Para encerrar, feche a janela preta.
