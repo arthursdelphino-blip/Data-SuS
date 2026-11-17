@@ -8,10 +8,22 @@
       "port": 8501
     },
     {
+      "name": "interface-8503",
+      "runtimeExecutable": ".venv\\Scripts\\python.exe",
+      "runtimeArgs": ["-m", "streamlit", "run", "app.py", "--server.headless", "true", "--server.port", "8503"],
+      "port": 8503
+    },
+    {
       "name": "site",
       "runtimeExecutable": ".venv\\Scripts\\python.exe",
       "runtimeArgs": ["-m", "http.server", "8600", "--directory", "docs"],
       "port": 8600
+    },
+    {
+      "name": "previa",
+      "runtimeExecutable": ".venv\\Scripts\\python.exe",
+      "runtimeArgs": ["-m", "http.server", "8610", "--directory", "C:\\Users\\ARTHU\\AppData\\Local\\Temp\\claude\\14d2bf34e502ac79\\b737a42b-1b90-462c-984e-1345293ccea5\\scratchpad"],
+      "port": 8610
     }
   ]
 }

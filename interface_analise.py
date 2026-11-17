@@ -23,14 +23,34 @@ from datasus_ciencia.tratamento import COLUNA_CID, diagnostico, expandir_cids, u
 from interface_imagem import botao_zip, fonte_de_meta, iniciar_figuras, mostrar_grafico, mostrar_tabela
 
 # ------------------------------------------------------------------ paleta (validada – skill dataviz)
-# Tema escuro (fundo marinho #0B1A2E, .streamlit/config.toml): passos "dark" da paleta categórica,
-# validados contra o fundo (todos >= 3:1, CVD adjacente >= 8,4). Sequencial: escuro = pouco, claro = muito.
-FUNDO = "#0B1A2E"
-SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"]
+# Dois temas (.streamlit/config.toml); os gráficos da tela seguem o ativo (`paleta()`).
+# Escuro (fundo marinho #0B1A2E): passos "dark" da paleta categórica, validados contra o fundo (todos >= 3:1,
+# CVD adjacente >= 8,4); sequencial escuro = pouco, claro = muito.
+# Claro (fundo #F5F6F1): passos "light", os mesmos da imagem de publicação; sequencial claro = pouco.
 CINZA = "#898781"
-AZUL = "#3987e5"
-SEQ_AZUL = ["#184f95", "#1c5cab", "#2a78d6", "#3987e5", "#6da7ec", "#9ec5f4", "#cde2fb"]
-COR_FIXA = {"Masculino": SERIES[0], "Feminino": SERIES[1]}
+PALETAS = {
+    "dark": {"fundo": "#0B1A2E",
+             "series": ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"],
+             "seq": ["#184f95", "#1c5cab", "#2a78d6", "#3987e5", "#6da7ec", "#9ec5f4", "#cde2fb"],
+             "eixo": {"gridColor": "#1F3A5C", "domainColor": "#2C4A6E", "tickColor": "#2C4A6E",
+                      "labelColor": "#8FA6BF", "titleColor": "#8FA6BF"}},
+    "light": {"fundo": "#F5F6F1",
+              "series": ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"],
+              "seq": ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#2a78d6", "#1c5cab", "#184f95"],
+              "eixo": {"gridColor": "#e1e0d9", "domainColor": "#898781", "tickColor": "#898781",
+                       "labelColor": "#52514e", "titleColor": "#52514e"}},
+}
+
+
+def paleta():
+    """Cores do tema ativo no navegador (sem tema conhecido, ex.: AppTest, usa o escuro)."""
+    try:
+        tipo = st.context.theme.type
+    except Exception:
+        tipo = None
+    p = PALETAS["light" if tipo == "light" else "dark"]
+    s = p["series"]
+    return {**p, "azul": s[0], "contraf": s[1], "fixa": {"Masculino": s[0], "Feminino": s[1]}}
 
 # a primeira coluna disponível é o padrão. No SINAN, o TabNet conta pelo ano de diagnóstico (sífilis em gestante RJ
 # 2017: 7.949 por diagnóstico × 7.901 por notificação) – ele vem antes, se estiver bem preenchido (ver anos_disp)
@@ -45,7 +65,6 @@ ROT_ANO = {"ano_processamento": "Ano de processamento (competência – igual ao
 DESFECHOS = {"obito_hospitalar": "Letalidade hospitalar (% das internações com óbito)",
              "obito_infantil": "% de óbitos em menores de 1 ano", "prematuro": "% de prematuros (<37 semanas)",
              "baixo_peso": "% de baixo peso ao nascer (<2.500 g)", "anomalia_congenita": "% com anomalia congênita"}
-COR_CONTRAF = SERIES[1]
 MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
 GEOGRAFICAS = {"mun_residencia_uf", "mun_residencia_regiao"}
 # grupos de comparação que têm população correspondente no TabNet (coluna em rotular_populacao)
@@ -260,12 +279,14 @@ def _malha_ufs():
 # ------------------------------------------------------------------ cores
 def escala_cores(niveis):
     """Cor segue a entidade: Masculino/Feminino fixos, Ignorado/Outros em cinza, demais na ordem da paleta."""
-    usa_fixas = bool(set(niveis) & set(COR_FIXA))
-    livres = [c for c in SERIES if c not in COR_FIXA.values()] if usa_fixas else SERIES
+    p = paleta()
+    fixa, series = p["fixa"], p["series"]
+    usa_fixas = bool(set(niveis) & set(fixa))
+    livres = [c for c in series if c not in fixa.values()] if usa_fixas else series
     faixa, i = [], 0
     for n in niveis:
-        if n in COR_FIXA:
-            faixa.append(COR_FIXA[n])
+        if n in fixa:
+            faixa.append(fixa[n])
         elif n in E.AUSENTES or n == "Outros":
             faixa.append(CINZA)
         else:
@@ -298,17 +319,18 @@ def preparar_comparacao(d, grupo, excl, maximo=8):
 
 
 def _eixo():
-    return {"gridColor": "#1F3A5C", "domainColor": "#2C4A6E", "tickColor": "#2C4A6E",
-            "labelColor": "#8FA6BF", "titleColor": "#8FA6BF"}
+    return dict(paleta()["eixo"])
 
 
 def _cfg(ch):
-    return ch.configure_axis(**_eixo()).configure_view(strokeWidth=0).configure_legend(
-        labelColor="#8FA6BF", titleColor="#8FA6BF", orient="top")
+    e = _eixo()
+    return ch.configure_axis(**e).configure_view(strokeWidth=0).configure_legend(
+        labelColor=e["labelColor"], titleColor=e["titleColor"], orient="top")
 
 
 # ------------------------------------------------------------------ gráficos
 def g_linha(d, x, y, cor=None, titulo_y="n", banda=None):
+    p = paleta()
     enc = {"x": alt.X(f"{x}:O", title=None, axis=alt.Axis(labelAngle=0)),
            "y": alt.Y(f"{y}:Q", title=titulo_y, scale=alt.Scale(zero=True)),
            "tooltip": [alt.Tooltip(c) for c in d.columns if not c.startswith("_")]}
@@ -316,7 +338,7 @@ def g_linha(d, x, y, cor=None, titulo_y="n", banda=None):
         niveis = E.ordenar_categorias(list(d[cor].unique()), d.groupby(cor)[y].sum())
         enc["color"] = alt.Color(f"{cor}:N", scale=escala_cores(niveis), sort=niveis, title=rot(cor))
     else:
-        enc["color"] = alt.value(AZUL)
+        enc["color"] = alt.value(p["azul"])
     base = alt.Chart(d)
     camadas = []
     if banda:
@@ -324,14 +346,16 @@ def g_linha(d, x, y, cor=None, titulo_y="n", banda=None):
         if cor:
             b_enc["color"] = enc["color"]
         else:
-            b_enc["color"] = alt.value(AZUL)
+            b_enc["color"] = alt.value(p["azul"])
         camadas.append(base.mark_area(opacity=0.15).encode(**b_enc))
     camadas.append(base.mark_line(strokeWidth=2).encode(**enc))
-    camadas.append(base.mark_point(size=64, filled=True, stroke=FUNDO, strokeWidth=2).encode(**enc))
+    camadas.append(base.mark_point(size=64, filled=True, stroke=p["fundo"], strokeWidth=2).encode(**enc))
     return _cfg(alt.layer(*camadas).properties(height=320))
 
 
-def g_barras_h(d, cat, val="n", ordem=None, cor=AZUL, titulo_x="n", altura_linha=24):
+def g_barras_h(d, cat, val="n", ordem=None, cor=None, titulo_x="n", altura_linha=24):
+    fixa = paleta()["fixa"]
+    cor = cor or paleta()["azul"]
     d = d.copy()
     d[cat] = d[cat].astype(str)
     sort = ordem if ordem else "-x"
@@ -339,10 +363,10 @@ def g_barras_h(d, cat, val="n", ordem=None, cor=AZUL, titulo_x="n", altura_linha
                       axis=alt.Axis(labelLimit=320, labelOverlap=False)),  # nunca esconder rótulos
            "x": alt.X(f"{val}:Q", title=titulo_x),
            "tooltip": [alt.Tooltip(c) for c in d.columns if not c.startswith("_")]}
-    if set(d[cat]) & set(COR_FIXA):  # sexo: cores fixas (Masculino/Feminino), demais categorias em cinza
+    if set(d[cat]) & set(fixa):  # sexo: cores fixas (Masculino/Feminino), demais categorias em cinza
         dom = list(d[cat])
         enc["color"] = alt.Color(f"{cat}:N", legend=None, scale=alt.Scale(
-            domain=dom, range=[COR_FIXA.get(c, CINZA) for c in dom]))
+            domain=dom, range=[fixa.get(c, CINZA) for c in dom]))
         ch = alt.Chart(d).mark_bar(cornerRadiusEnd=4, height={"band": 0.8}).encode(**enc)
     else:
         ch = alt.Chart(d).mark_bar(cornerRadiusEnd=4, color=cor, height={"band": 0.8}).encode(**enc)
@@ -351,7 +375,7 @@ def g_barras_h(d, cat, val="n", ordem=None, cor=AZUL, titulo_x="n", altura_linha
 
 
 def g_barras_v(d, cat, val="n", ordem=None):
-    ch = alt.Chart(d).mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, color=AZUL).encode(
+    ch = alt.Chart(d).mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, color=paleta()["azul"]).encode(
         x=alt.X(f"{cat}:N", sort=ordem, title=None, axis=alt.Axis(labelAngle=0)),
         y=alt.Y(f"{val}:Q", title="n"), tooltip=[alt.Tooltip(c) for c in d.columns])
     return _cfg(ch.properties(height=260))
@@ -386,14 +410,15 @@ def serie_proporcao(d, y, chaves):
 
 def g_its(d, x, titulo_y, x_tipo="T"):
     """Observado (pontos), ajustado (linha) e contrafactual (tracejado) da série interrompida."""
+    p = paleta()
     base = alt.Chart(d)
     xenc = alt.X(f"{x}:{x_tipo}", title=None)
     obs = base.mark_point(size=40, filled=True, color=CINZA, opacity=0.8).encode(
         x=xenc, y=alt.Y("observado:Q", title=titulo_y, scale=alt.Scale(zero=False)),
         tooltip=[x, alt.Tooltip("observado:Q", format=".2f"), alt.Tooltip("ajustado:Q", format=".2f")])
-    aj = base.mark_line(strokeWidth=2, color=AZUL).encode(x=xenc, y="ajustado:Q", detail="segmento:N")
+    aj = base.mark_line(strokeWidth=2, color=p["azul"]).encode(x=xenc, y="ajustado:Q", detail="segmento:N")
     cf = base.transform_filter("datum.segmento == 'pós'").mark_line(
-        strokeWidth=2, strokeDash=[6, 4], color=COR_CONTRAF).encode(x=xenc, y="contrafactual:Q")
+        strokeWidth=2, strokeDash=[6, 4], color=p["contraf"]).encode(x=xenc, y="contrafactual:Q")
     corte = d[d["segmento"] == "pós"][x].min()
     regra = alt.Chart(pd.DataFrame({x: [corte]})).mark_rule(color=CINZA, strokeDash=[3, 3]).encode(x=f"{x}:{x_tipo}")
     return _cfg(alt.layer(obs, aj, cf, regra).properties(height=340))
@@ -401,11 +426,12 @@ def g_its(d, x, titulo_y, x_tipo="T"):
 
 def g_mapa(geo, valores, campo, titulo):
     feats = geo["features"]
-    ch = alt.Chart(alt.Data(values=feats)).mark_geoshape(stroke=FUNDO, strokeWidth=0.5).transform_lookup(
+    p = paleta()
+    ch = alt.Chart(alt.Data(values=feats)).mark_geoshape(stroke=p["fundo"], strokeWidth=0.5).transform_lookup(
         lookup="properties.codarea",
         from_=alt.LookupData(alt.Data(values=valores), "codarea", list(dict.fromkeys([campo, "nome", "n"])))
     ).encode(
-        color=alt.Color(f"{campo}:Q", title=titulo, scale=alt.Scale(range=SEQ_AZUL, zero=True)),
+        color=alt.Color(f"{campo}:Q", title=titulo, scale=alt.Scale(range=p["seq"], zero=True)),
         tooltip=[alt.Tooltip("nome:N", title="Local"), alt.Tooltip("n:Q", title="n"),
                  alt.Tooltip(f"{campo}:Q", title=titulo, format=".1f")],
     ).project("mercator")
@@ -419,10 +445,11 @@ def g_forest(tab):
     if d.empty:
         return None
     ordem = list(d["rotulo"])
+    p = paleta()
     base = alt.Chart(d).encode(y=alt.Y("rotulo:N", sort=ordem, title=None, axis=alt.Axis(labelLimit=300)))
-    regra = base.mark_rule(strokeWidth=2, color=AZUL).encode(
+    regra = base.mark_rule(strokeWidth=2, color=p["azul"]).encode(
         x=alt.X("_inf:Q", scale=alt.Scale(type="log"), title="OR ajustado (IC95%, escala log)"), x2="_sup:Q")
-    ponto = base.mark_point(filled=True, size=80, color=AZUL, stroke=FUNDO, strokeWidth=2).encode(
+    ponto = base.mark_point(filled=True, size=80, color=p["azul"], stroke=p["fundo"], strokeWidth=2).encode(
         x="_or:Q", tooltip=["rotulo", alt.Tooltip("OR ajustado (IC95%)"), alt.Tooltip("p ajustado")])
     ref = alt.Chart(pd.DataFrame({"x": [1]})).mark_rule(color=CINZA, strokeDash=[4, 4]).encode(x="x:Q")
     return _cfg((ref + regra + ponto).properties(height=max(150, 26 * len(d))))
@@ -532,8 +559,8 @@ def aba_periodos(df, ano_col, mes_col, grupo, excl, y_ind, nome_ind, pop, mult, 
         base = alt.Chart(gd).encode(
             y=alt.Y("Grupo:N", sort=ordem_g, title=None, axis=alt.Axis(labelLimit=260)),
             yOffset=alt.YOffset("Período:N"),
-            color=alt.Color("Período:N", scale=alt.Scale(range=[CINZA, AZUL]), title=None))
-        pts = base.mark_point(filled=True, size=80, stroke=FUNDO, strokeWidth=2).encode(
+            color=alt.Color("Período:N", scale=alt.Scale(range=[CINZA, paleta()["azul"]]), title=None))
+        pts = base.mark_point(filled=True, size=80, stroke=paleta()["fundo"], strokeWidth=2).encode(
             x=alt.X("valor:Q", title="%" if y_ind is not None else ("taxa" if usar_pop else "média anual"),
                     scale=alt.Scale(zero=y_ind is None)),
             tooltip=["Grupo", "Período", alt.Tooltip("valor:Q", format=".2f")])

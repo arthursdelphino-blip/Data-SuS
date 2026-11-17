@@ -1,7 +1,7 @@
 """Download de gráficos, mapas e tabelas da interface como imagem (PNG 300 dpi / SVG), prontos para publicação,
 com personalização de título, legenda, fonte, eixos, tamanho, letra e cores.
 
-Os gráficos da tela usam o tema escuro; na exportação recebem o tema claro de publicação: fundo branco, tinta escura
+Os gráficos da tela seguem o tema ativo (escuro ou claro); na exportação recebem o tema claro de publicação: fundo branco, tinta escura
 e os passos "light" da mesma paleta categórica (skill dataviz, references/palette.md). O sequencial dos mapas é
 invertido (claro = pouco, escuro = muito), como manda a convenção em fundo claro. A personalização vale só para a
 imagem baixada; a tela não muda.
@@ -30,10 +30,11 @@ import streamlit as st
 
 # ------------------------------------------------------------------ tema claro de publicação
 FUNDO_ESCURO = "#0b1a2e"
+FUNDO_TELA_CLARO = "#f5f6f1"  # tema claro da tela: as cores já são as de publicação, só o fundo vira branco
 ESCURO_PARA_CLARO = {  # passo dark → passo light da paleta categórica validada
     "#3987e5": "#2a78d6", "#d95926": "#eb6834", "#199e70": "#1baf7a", "#c98500": "#eda100",
     "#d55181": "#e87ba4", "#0ca30c": "#008300", "#9085e9": "#6250d6", "#e66767": "#e34948",
-    FUNDO_ESCURO: "#ffffff",
+    FUNDO_ESCURO: "#ffffff", FUNDO_TELA_CLARO: "#ffffff",
 }
 SERIES_CLARO = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
 SEQ_ESCURO = ["#184f95", "#1c5cab", "#2a78d6", "#3987e5", "#6da7ec", "#9ec5f4", "#cde2fb"]

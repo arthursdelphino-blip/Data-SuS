@@ -2,23 +2,53 @@
 gatherUsageStats = false
 
 [client]
-toolbarMode = "minimal"
+# "viewer": mostra o menu ⋮ com Settings (troca entre tema claro e escuro), sem as opções de desenvolvedor
+toolbarMode = "viewer"
 
 [server]
 # Sem porta fixa: se a 8501 estiver ocupada, o Streamlit usa a próxima livre.
 
+# Dois temas: o usuário troca em ⋮ → Settings. Os gráficos seguem o tema ativo (interface_analise.paleta) e a
+# imagem exportada é sempre a de publicação (fundo branco).
 [theme]
 base = "dark"
+baseRadius = "medium"
+# O Streamlit só carrega os links de fonte desta seção; cada tema abaixo escolhe pelo nome.
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFont = "Archivo:https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap"
+codeFont = "IBM Plex Mono:https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
+
+# Escuro: a paleta azul-marinho original
+[theme.dark]
 primaryColor = "#22B8CF"
 backgroundColor = "#0B1A2E"
 secondaryBackgroundColor = "#132A46"
 textColor = "#E6EEF7"
 borderColor = "#1F3A5C"
 linkColor = "#22B8CF"
-font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-baseRadius = "medium"
+font = "Inter"
+headingFont = "Inter"
+codeFont = "monospace"
 
-[theme.sidebar]
+[theme.dark.sidebar]
 backgroundColor = "#0E2038"
 secondaryBackgroundColor = "#132A46"
 borderColor = "#1F3A5C"
+
+# Claro: papel de formulário, tinta de carimbo
+[theme.light]
+primaryColor = "#3A3F9A"
+backgroundColor = "#F5F6F1"
+secondaryBackgroundColor = "#E9ECE4"
+textColor = "#1B2433"
+borderColor = "#D5D9CF"
+linkColor = "#3A3F9A"
+codeBackgroundColor = "#FAFBF8"
+font = "Archivo"
+headingFont = "Archivo"
+codeFont = "IBM Plex Mono"
+
+[theme.light.sidebar]
+backgroundColor = "#ECEEE7"
+secondaryBackgroundColor = "#FFFFFF"
+borderColor = "#D5D9CF"
