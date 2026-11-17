@@ -2,7 +2,7 @@
 
 **Dos microdados do SUS ao trabalho científico, sem precisar programar.** Baixe, trate e analise dados do SIM, SINASC, SIH, SIA, SINAN e CNES numa interface no navegador, com indicadores conferidos com o TabNet, estatística pronta e rascunho de resumo para congresso.
 
-> 🎓 **Curso em vídeo:** [Do DATASUS ao Congresso: pesquisa com dados do SUS sem programar](https://pay.hotmart.com/S108528615Y?off=x2gwk4qd). São 42 aulas em 13 módulos, da instalação ao resumo para congresso (R$ 19,90, acesso vitalício).
+> 🎓 **Curso em vídeo:** [Do DATASUS ao Congresso: pesquisa com dados do SUS sem programar](https://arthursdelphino-blip.github.io/Data-SuS/curso/). São 42 aulas em 13 módulos, da instalação ao resumo para congresso (R$ 19,90, acesso vitalício).
 
 Programa gratuito e de código aberto (licença [AGPL‑3.0](#licença)) para **buscar microdados do DATASUS** (FTP público do Ministério da Saúde) e **organizá-los para produção científica**: base analítica tratada, dicionário de variáveis, tabela descritiva, metadados de reprodutibilidade, citação da fonte e texto de Métodos.
 

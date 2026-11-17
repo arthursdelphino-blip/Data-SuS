@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curso Do DATASUS ao Congresso · pesquisa com dados do SUS sem programar</title>
+<meta name="description" content="42 aulas curtas para baixar microdados do SUS, calcular indicadores, fazer estatística e chegar ao resumo para congresso, sem programar. R$ 19,90, acesso vitalício e garantia de 7 dias.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Do DATASUS ao Congresso: pesquisa com dados do SUS sem programar">
+<meta property="og:description" content="42 aulas curtas, do primeiro download ao resumo para congresso. R$ 19,90, acesso vitalício.">
+<meta property="og:url" content="https://arthursdelphino-blip.github.io/Data-SuS/curso/">
+<meta property="og:image" content="https://arthursdelphino-blip.github.io/Data-SuS/curso/img/capa.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="720">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fundo: #0B1A2E;
+    --fundo-2: #0E2038;
+    --cartao: #132A46;
+    --borda: #1F3A5C;
+    --destaque: #22B8CF;
+    --destaque-forte: #3FD0E6;
+    --texto: #E6EEF7;
+    --secundario: #8FA6BF;
+    --ok: #3DD68C;
+    --ouro: #F2C14E;
+    --raio: 14px;
+    --largura: 1120px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--fundo); color: var(--texto);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--destaque); text-decoration: none; }
+  a:hover { color: var(--destaque-forte); }
+  img { max-width: 100%; }
+  .container { max-width: var(--largura); margin: 0 auto; padding: 0 20px; }
+
+  /* Menu */
+  header.menu {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(11, 26, 46, 0.88); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--borda);
+  }
+  .menu .container { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
+  .marca { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; color: var(--texto); }
+  .marca:hover { color: var(--texto); }
+  .marca .logo {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--destaque), #1A6FA8); display: grid; place-items: center;
+  }
+  .menu nav { display: flex; gap: 26px; align-items: center; }
+  .menu nav a { color: var(--secundario); font-weight: 500; font-size: 15px; }
+  .menu nav a:hover { color: var(--texto); }
+  .menu .botao { padding: 9px 18px; font-size: 15px; }
+
+  /* Botões */
+  .botao {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 26px; border-radius: 10px; font-weight: 700; font-size: 17px; transition: .15s;
+  }
+  .botao.primario { background: var(--destaque); color: #06202A; }
+  .botao.primario:hover { background: var(--destaque-forte); color: #06202A; transform: translateY(-1px); }
+  .botao.secundario { border: 1px solid var(--borda); color: var(--texto); background: var(--cartao); font-weight: 600; }
+  .botao.secundario:hover { border-color: var(--destaque); color: var(--texto); }
+  .botao.grande { padding: 17px 34px; font-size: 18px; }
+
+  /* Topo */
+  .topo {
+    padding: 80px 0 72px;
+    background:
+      radial-gradient(800px 420px at 85% -10%, rgba(34, 184, 207, 0.20), transparent 60%),
+      radial-gradient(600px 300px at 0% 110%, rgba(26, 111, 168, 0.22), transparent 60%);
+  }
+  .topo .container { display: grid; grid-template-columns: 6fr 5fr; gap: 56px; align-items: center; }
+  .selo {
+    display: inline-block; padding: 6px 14px; border-radius: 999px;
+    background: rgba(242, 193, 78, 0.12); color: var(--ouro);
+    font-size: 14px; font-weight: 700; border: 1px solid rgba(242, 193, 78, 0.35); letter-spacing: .02em;
+  }
+  .topo h1 {
+    font-size: clamp(36px, 5.6vw, 60px); line-height: 1.05; font-weight: 800;
+    letter-spacing: -0.025em; margin: 20px 0 16px;
+  }
+  .topo h1 span { color: var(--destaque); }
+  .topo p.sub { font-size: 19px; color: var(--secundario); margin: 0 0 28px; max-width: 600px; }
+  .compra { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .valor { line-height: 1.2; }
+  .valor strong { display: block; font-size: 34px; font-weight: 800; letter-spacing: -0.02em; }
+  .valor small { color: var(--secundario); font-size: 14px; }
+  .garantias { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 26px 0 0; padding: 0; list-style: none; color: var(--secundario); font-size: 15px; }
+  .garantias li { display: flex; align-items: center; gap: 8px; }
+  .garantias svg { color: var(--ok); flex: none; }
+
+  .janela {
+    border-radius: 14px; overflow: hidden; border: 1px solid var(--borda); background: var(--cartao);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(34, 184, 207, 0.08);
+  }
+  .janela .barra { display: flex; gap: 7px; padding: 11px 14px; border-bottom: 1px solid var(--borda); }
+  .janela .barra i { width: 10px; height: 10px; border-radius: 50%; background: #2C4A6E; }
+  .janela img { display: block; width: 100%; height: auto; }
+
+  /* Faixa de números */
+  .numeros { border-top: 1px solid var(--borda); border-bottom: 1px solid var(--borda); background: var(--fundo-2); }
+  .numeros .container { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .numeros div.n { padding: 26px 12px; text-align: center; }
+  .numeros div.n + div.n { border-left: 1px solid var(--borda); }
+  .numeros b { display: block; font-size: 30px; font-weight: 800; color: var(--texto); letter-spacing: -0.02em; }
+  .numeros span { color: var(--secundario); font-size: 14px; }
+
+  /* Seções */
+  section { padding: 88px 0; scroll-margin-top: 64px; }
+  section.alt { background: var(--fundo-2); border-top: 1px solid var(--borda); border-bottom: 1px solid var(--borda); }
+  .rotulo { color: var(--destaque); font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+  h2 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 10px 0 14px; letter-spacing: -0.015em; }
+  .intro { color: var(--secundario); max-width: 700px; margin: 0 0 44px; }
+
+  /* Problema → solução */
+  .dor { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .dor .cartao h3 { display: flex; align-items: center; gap: 10px; }
+  .dor ul { margin: 14px 0 0; padding: 0; list-style: none; }
+  .dor li { padding-left: 28px; position: relative; color: var(--secundario); margin-bottom: 10px; }
+  .dor .antes li::before { content: "✕"; position: absolute; left: 2px; color: #E0707A; font-weight: 700; }
+  .dor .depois { border-color: rgba(34, 184, 207, 0.45); background: linear-gradient(180deg, rgba(34,184,207,.08), var(--cartao)); }
+  .dor .depois li::before { content: "✓"; position: absolute; left: 2px; color: var(--destaque); font-weight: 700; }
+
+  .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); padding: 28px; }
+  .cartao h3 { margin: 0 0 8px; font-size: 19px; }
+  .cartao p { margin: 0; color: var(--secundario); font-size: 16px; }
+
+  /* Resultados */
+  .grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grade .cartao { transition: .2s; }
+  .grade .cartao:hover { border-color: rgba(34, 184, 207, 0.5); transform: translateY(-2px); }
+  .icone {
+    width: 44px; height: 44px; border-radius: 10px; margin-bottom: 18px; display: grid; place-items: center;
+    background: rgba(34, 184, 207, 0.12); color: var(--destaque);
+  }
+
+  /* Galeria das aulas */
+  .galeria { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .galeria figure { margin: 0; }
+  .galeria figcaption { margin-top: 12px; color: var(--secundario); font-size: 15px; }
+  .galeria figcaption b { color: var(--texto); }
+
+  /* Para quem */
+  .quem { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .quem .cartao { padding: 24px; }
+  .quem .cartao h3 { font-size: 17px; }
+  .quem .cartao p { font-size: 15px; }
+
+  /* Conteúdo */
+  .modulos { display: grid; gap: 10px; }
+  details.modulo { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; }
+  details.modulo[open] { border-color: rgba(34, 184, 207, 0.45); }
+  details.modulo summary {
+    list-style: none; cursor: pointer; padding: 18px 22px;
+    display: flex; align-items: center; gap: 16px; font-weight: 600;
+  }
+  details.modulo summary::-webkit-details-marker { display: none; }
+  details.modulo summary:focus-visible { outline: 2px solid var(--destaque); outline-offset: -2px; }
+  .num {
+    flex: none; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center;
+    background: rgba(34, 184, 207, 0.12); color: var(--destaque); font-weight: 800; font-size: 15px;
+  }
+  .qtd { margin-left: auto; color: var(--secundario); font-weight: 500; font-size: 14px; white-space: nowrap; }
+  .seta { flex: none; transition: transform .2s; color: var(--secundario); }
+  details[open] .seta { transform: rotate(180deg); }
+  details.modulo ol { margin: 0; padding: 0 22px 18px 22px; list-style: none; color: var(--secundario); }
+  details.modulo li { padding: 4px 0; font-size: 16px; display: flex; gap: 16px; }
+  .aula-n { flex: none; width: 34px; text-align: center; color: var(--destaque); font-weight: 600; }
+  .abrir-todos { margin: 0 0 16px; }
+  .abrir-todos button {
+    font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--destaque);
+    background: none; border: 0; padding: 0;
+  }
+
+  /* Oferta */
+  .oferta {
+    max-width: 640px; margin: 0 auto; text-align: center; padding: 44px 36px; border-radius: 20px;
+    background: linear-gradient(160deg, rgba(34,184,207,.16), rgba(26,111,168,.12) 60%, var(--cartao));
+    border: 1px solid rgba(34, 184, 207, 0.45);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+  }
+  .oferta h2 { margin-top: 6px; }
+  .oferta .valor strong { font-size: 52px; }
+  .oferta ul { list-style: none; padding: 0; margin: 26px auto 30px; text-align: left; max-width: 400px; }
+  .oferta li { padding-left: 28px; position: relative; margin-bottom: 10px; color: var(--texto); }
+  .oferta li::before { content: "✓"; position: absolute; left: 2px; color: var(--ok); font-weight: 800; }
+  .oferta .botao { width: 100%; }
+  .oferta .miuda { color: var(--secundario); font-size: 14px; margin: 16px 0 0; }
+
+  /* Perguntas */
+  .faq > * { max-width: 820px; }
+  .faq details { border-bottom: 1px solid var(--borda); }
+  .faq summary {
+    list-style: none; cursor: pointer; padding: 20px 0; font-weight: 600; font-size: 18px;
+    display: flex; justify-content: space-between; gap: 16px;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary:focus-visible { outline: 2px solid var(--destaque); outline-offset: 4px; }
+  .faq summary::after { content: "+"; color: var(--destaque); font-size: 24px; line-height: 1; font-weight: 400; }
+  .faq details[open] summary::after { content: "−"; }
+  .faq p { margin: 0 0 20px; color: var(--secundario); }
+
+  /* Barra fixa no celular */
+  .barra-compra { display: none; }
+
+  footer { padding: 40px 0; border-top: 1px solid var(--borda); color: var(--secundario); font-size: 14px; }
+  footer .container { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  footer strong { color: var(--texto); }
+
+  @media (max-width: 960px) {
+    .topo .container { grid-template-columns: 1fr; gap: 44px; }
+    .grade { grid-template-columns: 1fr 1fr; }
+    .quem { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 640px) {
+    .menu nav a:not(.botao) { display: none; }
+    .topo { padding: 52px 0 48px; }
+    section { padding: 64px 0; }
+    .numeros .container { grid-template-columns: 1fr 1fr; }
+    .numeros div.n:nth-child(3) { border-left: 0; }
+    .numeros div.n:nth-child(n+3) { border-top: 1px solid var(--borda); }
+    .dor, .grade, .galeria, .quem { grid-template-columns: 1fr; }
+    .compra .botao { flex: 1 1 100%; }
+    details.modulo summary { padding: 16px; gap: 12px; }
+    details.modulo ol { padding: 0 16px 16px 16px; }
+    details.modulo li { gap: 12px; }
+    .qtd { display: none; }
+    .seta { margin-left: auto; }
+    .oferta { padding: 34px 22px; }
+    .oferta .valor strong { font-size: 44px; }
+    body { padding-bottom: 76px; }
+    .barra-compra {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 12px 16px;
+      background: rgba(11, 26, 46, 0.96); backdrop-filter: blur(10px); border-top: 1px solid var(--borda);
+    }
+    .barra-compra b { font-size: 20px; }
+    .barra-compra small { display: block; color: var(--secundario); font-size: 12px; }
+    .barra-compra .botao { padding: 12px 20px; font-size: 16px; white-space: nowrap; }
+  }
+</style>
+</head>
+<body>
+
+<header class="menu">
+  <div class="container">
+    <a class="marca" href="../">
+      <span class="logo" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06202A" stroke-width="2.6" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>
+      </span>
+      Data-SUS
+    </a>
+    <nav>
+      <a href="#aprende">O que você aprende</a>
+      <a href="#conteudo">Conteúdo</a>
+      <a href="#perguntas">Perguntas</a>
+      <a class="botao primario" href="https://pay.hotmart.com/S108528615Y?off=x2gwk4qd">Quero o curso</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="topo">
+    <div class="container">
+      <div>
+        <span class="selo">CURSO ONLINE · SEM PROGRAMAR</span>
+        <h1>Do DATASUS <span>ao Congresso</span></h1>
+        <p class="sub">Aprenda a baixar microdados oficiais do SUS, calcular indicadores, fazer a estatística e chegar ao resumo para congresso, tudo com cliques, sem escrever uma linha de código.</p>
+        <div class="compra">
+          <a class="botao primario grande" href="https://pay.hotmart.com/S108528615Y?off=x2gwk4qd">Quero o curso</a>
+          <div class="valor"><strong>R$ 19,90</strong><small>pagamento único · parcelável no cartão</small></div>
+        </div>
+        <ul class="garantias">
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Acesso vitalício</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Garantia de 7 dias</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Programa gratuito incluso</li>
+        </ul>
+      </div>
+      <div class="janela">
+        <div class="barra" aria-hidden="true"><i></i><i></i><i></i></div>
+        <img src="../img/panorama.png" width="2880" height="1800"
+             alt="Tela de Análise do Data-SUS usada no curso: casos de sífilis em gestante no Rio de Janeiro, 2017–2025, com números-resumo, filtros e gráfico da taxa anual.">
+      </div>
+    </div>
+  </div>
+
+  <div class="numeros">
+    <div class="container">
+      <div class="n"><b>42</b><span>aulas em vídeo</span></div>
+      <div class="n"><b>13</b><span>módulos</span></div>
+      <div class="n"><b>~1 h</b><span>aulas curtas, direto ao ponto</span></div>
+      <div class="n"><b>6</b><span>sistemas do DATASUS</span></div>
+    </div>
+  </div>
+
+  <section id="problema">
+    <div class="container">
+      <div class="rotulo">Por que este curso</div>
+      <h2>Os dados do SUS são públicos. Usar é que é difícil.</h2>
+      <p class="intro">Quase todo trabalho de residência, TCC ou liga acadêmica esbarra nos mesmos obstáculos. O curso mostra o caminho completo com um programa gratuito que faz o trabalho pesado.</p>
+      <div class="dor">
+        <div class="cartao antes">
+          <h3>Sem o método</h3>
+          <ul>
+            <li>Arquivos .dbc que o Excel não abre</li>
+            <li>Códigos de variáveis sem explicação</li>
+            <li>Tabelas do TabNet montadas uma a uma</li>
+            <li>Dúvida sobre qual teste estatístico usar</li>
+            <li>Prazo do congresso chegando e nenhum resultado</li>
+          </ul>
+        </div>
+        <div class="cartao depois">
+          <h3>Depois do curso</h3>
+          <ul>
+            <li>Base baixada e decodificada em minutos</li>
+            <li>Dicionário de variáveis e citação da fonte prontos</li>
+            <li>Taxas com IC95%, conferidas com o TabNet</li>
+            <li>Tabela 1, tendência e regressão com o texto de métodos</li>
+            <li>Rascunho do resumo IMRD para você revisar e submeter</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="aprende" class="alt">
+    <div class="container">
+      <div class="rotulo">O que você aprende</div>
+      <h2>Do primeiro download ao resumo submetido</h2>
+      <p class="intro">Cada módulo termina com algo que você consegue fazer sozinho na sua própria pesquisa.</p>
+      <div class="grade">
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div>
+          <h3>Buscar e organizar dados</h3>
+          <p>Escolher sistema, UF, período e CID-10, e sair com a base pronta em Excel, CSV ou Stata.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4.5 2 7.5-6.5-4.5L5.5 21l2-7.5L2 9h7z"/></svg></div>
+          <h3>Conhecer cada sistema</h3>
+          <p>O que o SIM, o SINASC, o SIH, o SINAN, o SIA e o CNES registram, e os cuidados de cada um.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div>
+          <h3>Calcular indicadores</h3>
+          <p>Mortalidade infantil e materna, incidência, internação, letalidade e DCNT, com o denominador certo.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg></div>
+          <h3>Estatística sem mistério</h3>
+          <p>Taxas e IC95%, p-valor, Tabela 1, Prais-Winsten, série temporal interrompida e regressão logística.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg></div>
+          <h3>Figuras para publicação</h3>
+          <p>Gráficos, mapas e tabelas em PNG 300 dpi ou SVG, com título, legenda e fonte, todos num ZIP.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6zM14 3v6h6M8 13h8M8 17h5"/></svg></div>
+          <h3>Resumo para congresso</h3>
+          <p>Escolher os achados que importam e montar o resumo IMRD de 250 a 300 palavras.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="aulas">
+    <div class="container">
+      <div class="rotulo">Como são as aulas</div>
+      <h2>Tela real do programa, passo a passo</h2>
+      <p class="intro">Você vê exatamente onde clicar, com legendas e animações curtas para explicar os conceitos.</p>
+      <div class="galeria">
+        <figure>
+          <div class="janela"><img src="img/animacao.jpg" width="1280" height="720" loading="lazy"
+               alt="Animação da aula 3.4 com os componentes da mortalidade infantil: neonatal precoce, neonatal tardia e pós-neonatal."></div>
+          <figcaption><b>Aula 3.4</b> · Mortalidade infantil, fetal e materna</figcaption>
+        </figure>
+        <figure>
+          <div class="janela"><img src="img/tendencia.jpg" width="1280" height="720" loading="lazy"
+               alt="Aba Tendência do Data-SUS com a série anual de sífilis em gestante e a tabela de Prais-Winsten."></div>
+          <figcaption><b>Aula 9.4</b> · Tendência: Prais-Winsten e VPA</figcaption>
+        </figure>
+        <figure>
+          <div class="janela"><img src="img/figura.jpg" width="1280" height="720" loading="lazy"
+               alt="Janela Personalizar figura, com título, legenda, fonte e prévia do gráfico no tamanho de uma coluna."></div>
+          <figcaption><b>Aula 11.1</b> · Baixar imagem e personalizar</figcaption>
+        </figure>
+        <figure>
+          <div class="janela"><img src="img/resumo.jpg" width="1280" height="720" loading="lazy"
+               alt="Aba Relatório com os achados ranqueados por relevância para o resumo para congresso."></div>
+          <figcaption><b>Aula 12.2</b> · Resumo para congresso</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="quem" class="alt">
+    <div class="container">
+      <div class="rotulo">Para quem é</div>
+      <h2>Feito para quem pesquisa na saúde</h2>
+      <p class="intro">Você não precisa saber programar nem ter feito curso de estatística. Precisa só de um computador com Windows.</p>
+      <div class="quem">
+        <div class="cartao"><h3>Residentes</h3><p>Que precisam de um trabalho de conclusão com dados reais e prazo curto.</p></div>
+        <div class="cartao"><h3>Pós-graduandos</h3><p>Que querem um estudo ecológico ou de tendência bem feito, com métodos claros.</p></div>
+        <div class="cartao"><h3>Ligas acadêmicas</h3><p>Que querem levar trabalhos a congressos todo semestre.</p></div>
+        <div class="cartao"><h3>Profissionais do SUS</h3><p>Que querem olhar os dados do próprio município ou região.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="conteudo">
+    <div class="container">
+      <div class="rotulo">Conteúdo</div>
+      <h2>As 42 aulas</h2>
+      <p class="intro">Assista na ordem ou vá direto ao módulo de que você precisa agora.</p>
+      <p class="abrir-todos"><button type="button" id="abrir-todos" aria-pressed="false">Abrir todos os módulos</button></p>
+      <div class="modulos" id="modulos"></div>
+    </div>
+  </section>
+
+  <section id="comprar" class="alt">
+    <div class="container">
+      <div class="oferta">
+        <div class="rotulo">Acesso completo</div>
+        <h2>Do DATASUS ao Congresso</h2>
+        <div class="valor"><strong>R$ 19,90</strong><small>pagamento único · parcelável no cartão</small></div>
+        <ul>
+          <li>42 aulas em 13 módulos</li>
+          <li>Acesso vitalício, no computador e no celular</li>
+          <li>Programa Data-SUS gratuito e de código aberto</li>
+          <li>Garantia incondicional de 7 dias</li>
+        </ul>
+        <a class="botao primario grande" href="https://pay.hotmart.com/S108528615Y?off=x2gwk4qd">Quero o curso</a>
+        <p class="miuda">Pagamento seguro pela Hotmart. O acesso é liberado assim que o pagamento é confirmado.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="perguntas">
+    <div class="container faq">
+      <div class="rotulo">Perguntas frequentes</div>
+      <h2>Dúvidas comuns</h2>
+      <details>
+        <summary>Preciso saber programar?</summary>
+        <p>Não. Tudo é feito pela interface do Data-SUS, que abre no navegador. Você escolhe opções e clica em botões; o curso mostra cada clique.</p>
+      </details>
+      <details>
+        <summary>O programa é pago?</summary>
+        <p>Não. O Data-SUS é gratuito e de código aberto, e você pode baixá-lo antes mesmo de comprar o curso. O curso ensina o método: qual base usar, como calcular cada indicador, como interpretar a estatística e como transformar o resultado em resumo.</p>
+      </details>
+      <details>
+        <summary>Que computador eu preciso?</summary>
+        <p>Um PC com Windows e 8 GB de memória dá conta. O programa roda no seu computador, sem servidor e sem assinatura. A instalação é mostrada passo a passo nas aulas 1.1 e 1.2.</p>
+      </details>
+      <details>
+        <summary>Os resultados são confiáveis?</summary>
+        <p>Os dados vêm direto do DATASUS e os indicadores foram conferidos com o TabNet, a ferramenta oficial do Ministério da Saúde. O curso também mostra os limites de cada base, para você não tirar conclusões que os dados não sustentam.</p>
+      </details>
+      <details>
+        <summary>Por quanto tempo tenho acesso?</summary>
+        <p>Para sempre. O acesso é vitalício, na área de membros da Hotmart, pelo computador ou pelo aplicativo no celular.</p>
+      </details>
+      <details>
+        <summary>E se eu não gostar?</summary>
+        <p>Você tem 7 dias de garantia. Se o curso não for para você, peça o reembolso pela própria Hotmart dentro desse prazo e recebe o valor de volta.</p>
+      </details>
+      <details>
+        <summary>Tenho outra dúvida. Com quem falo?</summary>
+        <p>Escreva para <a href="mailto:arthursildelphino@gmail.com?subject=Curso%20Do%20DATASUS%20ao%20Congresso">arthursildelphino@gmail.com</a>.</p>
+      </details>
+    </div>
+  </section>
+</main>
+
+<div class="barra-compra">
+  <div><b>R$ 19,90</b><small>acesso vitalício · garantia de 7 dias</small></div>
+  <a class="botao primario" href="https://pay.hotmart.com/S108528615Y?off=x2gwk4qd">Quero o curso</a>
+</div>
+
+<footer>
+  <div class="container">
+    <div>
+      <strong>Do DATASUS ao Congresso</strong><br>
+      Curso sobre o <a href="../">Data-SUS</a>, software livre sob licença AGPL-3.0
+    </div>
+    <div>
+      Dados: DATASUS / Ministério da Saúde.<br>
+      Projeto independente, sem vínculo oficial com o Ministério da Saúde.
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var modulos = [
+      ["0", "Boas-vindas", ["Boas-vindas"]],
+      ["1", "Instalação", ["Instalando o Python e o programa", "Abrindo a interface"]],
+      ["2", "Buscar e organizar dados", ["Primeira busca: óbitos por causa", "Disponibilidade", "Minhas bases: dados e tabela descritiva", "Agregar e gráfico", "Dicionário, citação e Métodos"]],
+      ["3", "SIM – Mortalidade", ["O que é o SIM", "Mortalidade por causa e proporcional", "Causas evitáveis e DCNT", "Mortalidade infantil, fetal e materna"]],
+      ["4", "SINASC – Nascidos vivos", ["O que é o SINASC", "Prematuridade, baixo peso e Apgar", "Pré-natal, tipo de parto e Robson"]],
+      ["5", "SIH – Internações", ["O que é o SIH", "Taxa de internação, permanência e custos", "Letalidade hospitalar e procedimentos"]],
+      ["6", "SINAN – Agravos de notificação", ["O que é o SINAN", "Incidência e detecção", "Letalidade e desfechos", "Marcadores de cada agravo"]],
+      ["7", "Outras bases", ["SIA e CNES: quando usar"]],
+      ["8", "Usando a página Análise", ["Filtros da barra lateral", "Panorama: contagem, taxa e padronização", "Perfil e Geografia", "Causas e listas do TabNet", "Comparar grupos e Medir"]],
+      ["9", "Estatística sem mistério", ["Taxas, IC95% e padronização", "p-valor e tamanho de efeito", "Tabela 1", "Tendência: Prais-Winsten e VPA", "Antes × depois e série temporal interrompida", "Regressão logística", "O que os dados não dizem"]],
+      ["10", "Indicadores", ["A página Indicadores", "Agrupar anos e desagregar"]],
+      ["11", "Figuras e tabelas", ["Baixar imagem e personalizar", "Todas as figuras num ZIP"]],
+      ["12", "Do resultado ao congresso", ["Relatório Excel e texto de métodos", "Resumo para congresso", "Resumo com o Claude"]]
+    ];
+    var alvo = document.getElementById("modulos");
+    var seta = '<svg class="seta" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+    modulos.forEach(function (m) {
+      var d = document.createElement("details");
+      d.className = "modulo";
+      var n = m[2].length;
+      var itens = m[2].map(function (t, i) {
+        return '<li><span class="aula-n">' + m[0] + "." + (i + 1) + "</span><span>" + t + "</span></li>";
+      }).join("");
+      d.innerHTML = '<summary><span class="num">' + m[0] + "</span><span>" + m[1] + '</span><span class="qtd">' +
+        n + (n === 1 ? " aula" : " aulas") + "</span>" + seta + "</summary><ol>" + itens + "</ol>";
+      alvo.appendChild(d);
+    });
+    var botao = document.getElementById("abrir-todos");
+    botao.addEventListener("click", function () {
+      var abrir = botao.getAttribute("aria-pressed") !== "true";
+      alvo.querySelectorAll("details").forEach(function (d) { d.open = abrir; });
+      botao.setAttribute("aria-pressed", abrir);
+      botao.textContent = abrir ? "Fechar todos os módulos" : "Abrir todos os módulos";
+    });
+  })();
+</script>
+
+</body>
+</html>
